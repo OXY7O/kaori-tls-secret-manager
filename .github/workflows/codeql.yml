@@ -45,3 +45,16 @@ jobs:
         uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}
+          output: codeql-sarif
+      - name: Build metadata-only SARIF triage index
+        run: |
+          python3 scripts/ci/sarif_triage.py \
+            --input codeql-sarif \
+            --output codeql-sarif/triage-summary.json
+      - name: Archive CodeQL SARIF and triage evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: codeql-sarif/
+          if-no-files-found: error
+          retention-days: 14
