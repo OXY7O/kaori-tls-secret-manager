@@ -548,6 +548,9 @@ class WizardTests(unittest.TestCase):
                 self.assertIsNone(w.reverify_existing_run(args))
             self.assertEqual(ask.call_count, 1)
             self.assertIn("No matching saved renewal runs", screen.getvalue())
+            self.assertIn("Main menu 5 > Renew TLS creates renewal-plan.json", screen.getvalue())
+            self.assertIn("journal from an executed renewal", screen.getvalue())
+            self.assertIn("Do not renew just to test HTTPS", screen.getvalue())
             self.assertIn("TLS Doctor", screen.getvalue())
             self.assertIn("Enter or type 0/QUIT", screen.getvalue())
 
