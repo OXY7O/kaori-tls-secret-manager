@@ -36,8 +36,9 @@ jobs:
         run: |
           test -z "${KUBECONFIG:-}"
           echo 'No real cluster or Secret write permitted in CI.'
-  publish_preview:
-    name: Publish immutable source prerelease
+
+  publish_release:
+    name: Publish Semantic Versioned Source Release
     needs: offline
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
@@ -45,20 +46,24 @@ jobs:
     permissions:
       contents: write
     concurrency:
-      group: kaori-community-preview-release
+      group: kaori-source-release
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Validate prerelease manifest and build source artifact
+      - name: Validate SemVer release manifest and build archive
         shell: bash
         run: |
           set -euo pipefail
           VERSION="$(sed -n '1p' VERSION)"
-          test "${VERSION}" = "0.1.0-rc.1"
-          test -f docs/releases/v0.1.0-rc.1.md
+          if ! [[ "${VERSION}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::VERSION must be a SemVer MAJOR.MINOR.PATCH public release"
+            exit 1
+          fi
+          grep -F "## [${VERSION}]" CHANGELOG.md
+          test -f "docs/releases/v${VERSION}.md"
           test -f assets/kaori-logo.png
           test -f assets/kaori-mark.png
           test "${GITHUB_REF}" = "refs/heads/main"
@@ -68,20 +73,20 @@ jobs:
             --output="dist/${ARCHIVE}" HEAD
           tar -tzf "dist/${ARCHIVE}" >/dev/null
           ( cd dist && sha256sum "${ARCHIVE}" > SHA256SUMS )
-      - name: Create community prerelease after successful offline gate
+      - name: Publish immutable release and checksums
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          TAG="v$(sed -n '1p' VERSION)"
+          VERSION="$(sed -n '1p' VERSION)"
+          TAG="v${VERSION}"
           if gh release view "${TAG}" >/dev/null 2>&1; then
-            echo "Prerelease ${TAG} already exists; do not rewrite immutable release."
+            echo "Release ${TAG} already exists; immutable release will not be replaced."
             exit 0
           fi
           gh release create "${TAG}" \
-            dist/kaori-tls-management-${TAG}.tar.gz dist/SHA256SUMS \
+            "dist/kaori-tls-management-${TAG}.tar.gz" dist/SHA256SUMS \
             --target "${GITHUB_SHA}" \
-            --title "KAORI TLS Management ${TAG} (Community Preview)" \
-            --notes-file docs/releases/v0.1.0-rc.1.md \
-            --prerelease
+            --title "KAORI TLS Management ${TAG} — First Public Source Release" \
+            --notes-file "docs/releases/${TAG}.md"

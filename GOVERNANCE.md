@@ -18,6 +18,6 @@ Maintainers retain final discretion over merges, security disclosure coordinatio
 
 ## Release lifecycle
 
-The application publishes a **community prerelease (`v0.1.0-rc.1`)**, gated on offline checks on `main`. Release tags follow semantic versioning and dated changelog entries are immutable. Prerelease publication is **not** real Kubernetes DEV/UAT acceptance or production authorization.
+The application publishes **v0.1.0**, its initial public Semantic Versioning source release, after an offline regression gate on `main`. Release tags and dated changelog entries are immutable. **0.x** permits an evolving interface and does **not** constitute real Kubernetes DEV/UAT acceptance, production authorization or an operations SLA.
 
 Compatibility-breaking CLI/menu/output changes require explicit rationale, documentation and regression testing. Production-impacting changes must be validated in an approved isolated environment before a maintainer can claim production readiness.

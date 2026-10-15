@@ -6,6 +6,25 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 No subsequent user-facing changes have been recorded.
 
+## [0.1.0] - 2026-10-15
+
+**First versioned public source release following the community release candidate.** The `0.x` SemVer series permits changes to the interface; it is **not** a claim of production Kubernetes acceptance.
+
+### Added
+
+- Immutable GitHub tag and source archive distributed with SHA-256 checksum.
+- Tagged installation workflow and release notes documenting scope, supported environment and runtime expectations.
+- Reproducible SemVer release process guarded by offline GitHub Actions on `main`.
+
+### Changed
+
+- `VERSION`, README, SECURITY, governance and release documentation now identify the first public source release as `v0.1.0`.
+- Release publishing separates **public version availability** from **real-cluster production acceptance**.
+
+### Unverified operational gates
+
+- Independent security review, approved real Kubernetes DEV/UAT, live restore, RBAC and mutation race tests, and endpoint-owner acceptance remain outstanding. Do not construe the official source release as authorization for production changes.
+
 ## [0.1.0-rc.1] - 2026-10-15
 
 **First public community prerelease — evaluation only, not production-approved.**
@@ -37,4 +56,5 @@ No subsequent user-facing changes have been recorded.
 - Only source distribution on Linux/WSL is documented; no binary installer, verified compatibility matrix or production support SLA.
 - `0.1.0-rc.1` is **not** a stable production release. See [release notes](docs/releases/v0.1.0-rc.1.md) and [release checklist](docs/RELEASE-CHECKLIST.md).
 
+[0.1.0]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0
 [0.1.0-rc.1]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0-rc.1
