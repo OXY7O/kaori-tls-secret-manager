@@ -132,7 +132,7 @@ def _terminal_inline_png():
     """Display the distributed PNG only where an image protocol is confirmed.
 
     iTerm2 supports the OSC 1337 inline-image sequence. Other terminals get a
-    compact representation of the same shield-K mark, not raw escape payloads.
+    compact representation of the orbital-K mark, not raw escape payloads.
     """
     if (not USE_COLOR or not sys.stdout.isatty()
             or os.environ.get("TERM_PROGRAM") != "iTerm.app"
