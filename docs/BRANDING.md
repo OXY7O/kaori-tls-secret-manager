@@ -1,22 +1,24 @@
 # KAORI visual identity
 
-This repository includes original, scalable branding for **KAORI TLS Certificate Manager**.
+**KAORI TLS Certificate Manager** uses a shield-K symbol inspired by deliberate, guarded TLS lifecycle operations.
+
+## PNG assets
 
 | Asset | Purpose |
 | --- | --- |
-| [assets/kaori-logo.svg](../assets/kaori-logo.svg) | Full wordmark for README, documentation and project presentations |
-| [assets/kaori-mark.svg](../assets/kaori-mark.svg) | Square shield-K mark for terminal splash, icon and badges |
-| [assets/kaori-terminal.txt](../assets/kaori-terminal.txt) | Monochrome ASCII concept for future terminal-safe integration |
+| [kaori-logo.png](../assets/kaori-logo.png) | Official wordmark for the GitHub README and documentation |
+| [kaori-mark.png](../assets/kaori-mark.png) | Compact shield-K icon for community assets and terminal artwork |
+| [kaori-terminal.txt](../assets/kaori-terminal.txt) | Accessible monochrome terminal fallback concept |
 
-## Design
+The PNG files are the distributed image source of truth; the README uses PNG, not an SVG logo.
 
-- **Concept:** a protective Kubernetes TLS shield containing a recognizable **K**, expressing deliberate, guarded certificate lifecycle management.
-- **Colors:** deep midnight navy, cyan, blue and soft violet; light text on the full wordmark.
-- **Accessibility:** mark and wordmark include meaningful SVG title/description. CLI branding must remain legible with **--plain**, **NO_COLOR**, redirected output and screen readers.
-- **Usage:** keep proportions intact; prefer the SVG sources over screenshots or upscaled raster copies. Do not claim endorsement by Kubernetes or another third-party project.
+## In the utility
 
-## CLI integration contract
+The interactive wizard's previous oversized KAORI ASCII wordmark has been replaced by **the actual PNG** when launched in a compatible **iTerm2 terminal**, using the terminal's inline-image protocol. Other terminals automatically display a visually corresponding **shield-K** text mark without external dependencies, image viewers or Kubernetes access.
 
-The SVG assets are **branding sources, not executable terminal code**. When adding them to the Python/Bash wizard later, print a compact ANSI/Unicode approximation only for capable TTYs, and fall back to the ASCII label **KAORI TLS Certificate Manager** otherwise. Do not add external rendering libraries or block CLI startup on missing assets. Avoid injecting decoration into machine-readable JSON, status evidence or stderr diagnostics.
+- \`--plain\` and \`NO_COLOR\` use a readable ANSI-free text fallback.
+- Redirected output, dumb terminals and missing/corrupt logo files never receive inline-image escape sequences.
+- \`KAORI_NO_IMAGE=1\` explicitly disables inline PNG rendering when an iTerm2 session needs the text fallback.
+- No decorative terminal data is injected into machine-readable CRUD JSON or non-interactive help.
 
-Changes to the banner must keep command behavior and automated tests deterministic. Review the current [single-operator CLI behavior](../README.md) before integrating.
+For consistent sizing, use the logo in a wide aspect ratio and the mark for square displays. Never distort their proportions or imply endorsement by another project.
