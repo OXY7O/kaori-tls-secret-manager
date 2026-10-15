@@ -219,6 +219,8 @@ def show_operator_help():
         ("7", "History", "Inspect existing private run folders and journals."),
         ("8", "Status guide", "Detailed READY/HOLD/STOP and recovery status meanings."),
         ("9", "Help", "This reference page (also type ? or H)."),
+        ("10", "Create TLS", "Guided preflight, signed approval and non-overwriting create."),
+        ("11", "Delete TLS", "Guarded decommission with dependency audit and encrypted backup."),
         ("0", "Exit", "Leave the interactive menu."),
     ):
         print(f"    {number:>2}  {name:<13} {detail}")
@@ -234,6 +236,7 @@ def show_operator_help():
     print("    --review-plan <path>   Review HOLD from saved renewal-plan.json")
     print("    --reviewed-holds <csv> Previously approved review-exception mapping")
     print("    --plain                Disable Unicode icons and ANSI colors")
+    print("    Menu 10/11             Plan Create/Delete, then optional signed execution")
     renewal_help()
     print("\n  SAFETY / SHORTCUTS")
     print("    Menu 1 is the default and does not run renewal or rollback.")
@@ -1608,6 +1611,124 @@ def reverify_existing_run(args):
     ok("Endpoint reverification completed without changing Kubernetes Secrets.")
 
 
+
+def crud_command(context, command, *options):
+    """Run the standalone CRUD engine, keeping the historical KAORI UI.
+
+    Writes have no arbitrary timeout: an API request may have succeeded despite
+    a client timeout. The CRUD engine records uncertain outcomes before writes.
+    """
+    tool = HERE.parents[1] / "tls_crud.py"
+    check(tool.is_file(), "CRUD engine is unavailable in this checkout")
+    write = command in ("create", "update", "delete")
+    argv = [sys.executable, str(tool), "--context", context, command,
+            *list(map(str, options))]
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True,
+                              timeout=None if write else 180)
+    except subprocess.TimeoutExpired as exc:
+        raise Stop("CRUD preflight timed out; inspect live state before retrying") from exc
+    if proc.returncode:
+        # The CLI returns controlled STOP messages, never raw TLS key material.
+        raise Stop(proc.stderr.strip() or "CRUD operation was stopped")
+    try:
+        return json.loads(proc.stdout)
+    except ValueError as exc:
+        raise Stop("Unexpected CRUD CLI response; check local execution logs") from exc
+
+
+def crud_wizard(args, operation):
+    """Create and Delete from the original menu; no automatic Kubernetes writes."""
+    check(operation in ("create", "delete"), "Unsupported lifecycle operation")
+    is_delete = operation == "delete"
+    header(("DELETE TLS SECRET" if is_delete else "CREATE TLS SECRET") +
+           " / GUIDED CHANGE")
+    warning("DEV/UAT ONLY. Planning reads Kubernetes; signed approval is mandatory for writes.")
+    if is_delete:
+        warning("Delete is a decommission operation. Active references or unknown ownership BLOCK it.")
+        hint("No bulk delete, no automatic retry or rollback. The backup must be recoverable.")
+    else:
+        hint("Create requires operator-provided certificate/key; this tool does not issue certificates.")
+        hint("An existing Secret name is NEVER overwritten by Create.")
+
+    contexts = exec_read(["kubectl", "config", "get-contexts", "-o", "name"]).splitlines()
+    context = args.context or choose("Kubernetes context", contexts)
+    check(context in contexts, "Unknown Kubernetes context")
+    ns_data = json.loads(exec_read(["kubectl", "--context", context,
+                                   "--request-timeout=20s", "get", "namespaces", "-o", "json"]))
+    namespaces = sorted(x["metadata"]["name"] for x in ns_data["items"])
+    namespace = choose("Target namespace", namespaces)
+    name = ask("Exact TLS Secret name (BACK to cancel)")
+    # Reuse the established DNS-subdomain safety conventions, but validation
+    # of names/types is ultimately enforced by the CRUD engine and Kubernetes.
+    check(bool(name) and not any(ch.isspace() for ch in name) and not name.startswith("-"),
+          "Invalid target Secret name")
+    workspace = Path(ask("Private evidence root (outside source repository)",
+                         str(Path.home() / "k8s-tls-private" / "crud-runs"))).expanduser()
+    check(not workspace.is_symlink() and HERE not in workspace.resolve().parents,
+          "Evidence cannot be written to the source checkout")
+    options = ["--namespace", namespace, "--secret", name, "--workspace", workspace]
+    cert = key = ca = None
+    if not is_delete:
+        cert, key, ca = choose_certificate_inputs(args)
+        options += ["--cert", cert, "--key", key]
+        if ca:
+            options += ["--ca-bundle", ca]
+    step(1, 3, "Read-only preflight and immutable plan",
+         "No Secret creation/deletion occurs during planning.")
+    result = crud_command(context, "plan-delete" if is_delete else "plan-create", *options)
+    plan_path = Path(result["plan"]).expanduser().resolve()
+    planid = result["plan_id"]
+    file_hint("Immutable lifecycle plan", plan_path)
+    print(f"  Target : {namespace}/{name}")
+    print(f"  Action : {'DELETE' if is_delete else 'CREATE'}")
+    print(f"  Plan ID: {planid}")
+    warning("Operator approval must be independent and signed with a trusted key.")
+    hint("See docs/OPERATOR-GUIDE.md for the signed approval format and requirements.")
+    if ask("Continue to approval and execution? Type EXECUTE; Enter leaves plan only", "") != "EXECUTE":
+        ok("Plan saved only. Kubernetes Secrets were not modified.")
+        return result
+
+    step(2, 3, "Independent approval and exact scope confirmation",
+         "A signed approval does not bypass Kubernetes preconditions.")
+    record = Path(ask("Signed approval JSON path")).expanduser()
+    signature = Path(ask("Detached SHA256 signature path")).expanduser()
+    trusted = Path(ask("Root-owned approved public key path",
+                       "/etc/kaori/tls-approval-public.pem")).expanduser()
+    check(record.is_file() and signature.is_file() and trusted.is_file(),
+          "Approval record, signature and trusted public key are required")
+    backup = None
+    if is_delete:
+        backup = ask("age recovery public recipient (age1...)")
+        check(backup.startswith("age1") and len(backup) > 20,
+              "Valid age public backup recipient is required for Delete")
+    check(ask("Type AUTHORIZED to confirm approved scope") == "AUTHORIZED",
+          "Operator cancelled before Kubernetes mutation")
+    check(ask("Type the exact PLAN ID to approve the write") == planid,
+          "Plan ID confirmation mismatch")
+    check(ask("Type exact namespace/Secret to confirm target") == f"{namespace}/{name}",
+          "Target confirmation mismatch")
+    step(3, 3, "Execute with encrypted recovery evidence",
+         "One attempt only. Reconcile uncertain outcomes; never blindly retry.")
+    apply_args = ["--namespace", namespace, "--secret", name,
+                  "--plan", plan_path, "--approve", planid,
+                  "--confirm-target", f"{namespace}/{name}",
+                  "--approval-record", record,
+                  "--approval-signature", signature,
+                  "--approval-trust-key", trusted]
+    if is_delete:
+        apply_args += ["--backup-recipient", backup]
+    else:
+        apply_args += ["--cert", cert, "--key", key]
+        if ca:
+            apply_args += ["--ca-bundle", ca]
+    outcome = crud_command(context, operation, *apply_args)
+    ok(f"{operation.upper()} completed with Kubernetes readback evidence.")
+    file_hint("Lifecycle journal", outcome["journal"])
+    return outcome
+
+
+
 def main_menu(args):
     os.umask(0o077)
     check(sys.stdin.isatty(), "Interactive TTY required")
@@ -1629,6 +1750,9 @@ def main_menu(args):
         menu_entry("7", "Run history")
         menu_entry("8", "Status guide")
         menu_entry("9", "Help")
+        print()
+        menu_entry("10", "Create TLS Secret", caution=True)
+        menu_entry("11", "Delete TLS Secret", caution=True)
         menu_entry("0", "Exit")
         print()
         try:
@@ -1674,6 +1798,12 @@ def main_menu(args):
                 path = choose_previous_plan(args)
                 if path:
                     show_run_status(path)
+                continue
+            if choice == "10":
+                crud_wizard(args, "create")
+                continue
+            if choice == "11":
+                crud_wizard(args, "delete")
                 continue
             if choice == "8":
                 header("STATUS REFERENCE GUIDE")

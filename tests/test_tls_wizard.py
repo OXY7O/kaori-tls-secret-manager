@@ -210,6 +210,41 @@ class WizardTests(unittest.TestCase):
         self.assertEqual(prompts.call_args_list[0].args[1], "1")
         self.assertTrue(screen.isascii(), "Plain mode must not emit Unicode art/text")
 
+
+    def test_new_create_delete_items_use_original_wizard_menu(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        args = types.SimpleNamespace(workspace=None, context=None)
+        w.setup_display(plain=True)
+        with patch.object(w.sys.stdin, "isatty", return_value=True), \
+             patch.object(w, "recent_plans", return_value=[]), \
+             patch.object(w, "ask", side_effect=["10", "11", "0"]), \
+             patch.object(w, "crud_wizard") as lifecycle, \
+             patch.object(w.subprocess, "run", side_effect=AssertionError("No kubectl")), \
+             redirect_stdout(StringIO()) as captured:
+            w.main_menu(args)
+        self.assertEqual([c.args[1] for c in lifecycle.call_args_list],
+                         ["create", "delete"])
+        self.assertIn("10. Create TLS Secret", captured.getvalue())
+        self.assertIn("11. Delete TLS Secret", captured.getvalue())
+
+    def test_crud_engine_uses_no_arbitrary_mutation_timeout(self):
+        with patch.object(w.subprocess, "run") as runner, \
+             patch.object(w.Path, "is_file", return_value=True):
+            runner.return_value.returncode = 0
+            runner.return_value.stdout = '{"status":"COMPLETE"}'
+            runner.return_value.stderr = ""
+            self.assertEqual(w.crud_command("ctx", "delete", "--namespace", "dev"),
+                             {"status": "COMPLETE"})
+            self.assertIsNone(runner.call_args.kwargs.get("timeout"))
+            self.assertIn("tls_crud.py", " ".join(str(x) for x in runner.call_args.args[0]))
+
+    def test_crud_bad_command_fails_closed_without_kubernetes(self):
+        with patch.object(w.Path, "is_file", return_value=False), \
+             patch.object(w.subprocess, "run", side_effect=AssertionError("No subprocess")):
+            with self.assertRaisesRegex(m.Stop, "CRUD engine is unavailable"):
+                w.crud_command("ctx", "plan-create", "--namespace", "dev")
+
     def test_main_menu_numbers_are_sequential_and_default_is_safe_inventory(self):
         from contextlib import redirect_stdout
         from io import StringIO
@@ -225,7 +260,7 @@ class WizardTests(unittest.TestCase):
             w.main_menu(args)
         home = output.getvalue()
         entries = re.findall(r"^\s+(\d+)\.\s+(.+)$", home, flags=re.MULTILINE)
-        self.assertEqual([int(n) for n, _ in entries], [1, 2, 3, 4, 5, 6, 7, 8, 9, 0])
+        self.assertEqual([int(n) for n, _ in entries], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0])
         self.assertTrue(entries[0][1].startswith("Inventory"))
         self.assertNotIn("[DEFAULT]", home)
         self.assertNotRegex(home, r"(?m)^\s+[1-9]\s+[-◉◷⚙↻✓]")
