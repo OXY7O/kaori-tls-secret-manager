@@ -151,31 +151,32 @@ def _terminal_inline_png():
 
 
 def brand_banner():
-    """Render the KAORI shield-K identity with a PNG-capable TTY fallback."""
+    """Render the Kaori TLS Management PNG, with a portable text fallback."""
     width = shutil.get_terminal_size(fallback=(80, 24)).columns
     print()
     if _terminal_inline_png():
         return
-    # Terminal rendition of assets/kaori-mark.png. No image viewer required.
+    # Text analogue of the orbital-K emblem for non-image terminals.
+    # Never send PNG control sequences to redirected, plain or dumb output.
     if width >= 43:
-        shield = (
-            "    .-----------.",
-            "   /   _  __    \\",
-            "  |   | |/ /     |",
-            "  |   | ' /      |",
-            "  |   | . \\      |",
-            "  |   |_|\\_\\     |",
-            "   \\             /",
-            "    '-----------'",
+        orbit = (
+            "       .------.        ",
+            "    .-'   / /  '-.     ",
+            "   /    |/ /      \\    ",
+            "  |     | /___   (o)   ",
+            "   \\    | \\   _/      ",
+            "    '-. |  \\-'         ",
+            "       '------'         ",
         )
-        for line in shield:
+        for line in orbit:
             print("  " + paint(line, 36))
     else:
         print("  " + paint("[K]", 36))
-    print("  " + paint("KAORI TLS", 1))
-    print("  " + paint("CERTIFICATE MANAGER", 1))
+    print("  " + paint("KAORI", 1))
+    print("  " + paint("TLS MANAGEMENT", 1))
     print("  " + paint(("-" if not USE_ICONS else "─")
                        * max(12, min(44, width - 4)), 36))
+
 
 def menu_entry(number, title, *, default=False, caution=False):
     """Color is supplementary: cyan inventory, yellow renewal, plain white otherwise."""
