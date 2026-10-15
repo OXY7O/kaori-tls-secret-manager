@@ -22,6 +22,18 @@ An operator's local sudo access does NOT replace an independent change approval.
 
 ## A. One-time prerequisites
 
+**If the team has no enrolled signing identity yet**, the security administrator and independent approver must first establish one under the organization's key-management procedure. For an isolated approved DEV/UAT setup, a separate approver can generate an RSA-3072 keypair inside their controlled environment (not the requesting operator's laptop):
+
+~~~bash
+umask 077
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 \
+  -out /SECURE/APPROVER/approver-private-key.pem
+openssl pkey -in /SECURE/APPROVER/approver-private-key.pem -pubout \
+  -out /SECURE/HANDOFF/authorized-approver-public.pem
+~~~
+
+The approver retains sole control of the private key; an authorized administrator independently verifies the public key's identity/fingerprint before enrolling it as a trusted key. These key-provisioning commands are **not** instructions for the requesting operator to self-approve.
+
 **Administrator:** install an *authenticated* public verification key belonging to the independent authorized approver. An authorized admin may run:
 
 ~~~bash
@@ -215,7 +227,18 @@ for suffix in ("-backup.age", "-journal.json"):
 PY
 ~~~
 
-The authorized recovery custodian should verify that the age backup is decryptable **without displaying raw Secret data or tls.key**. Decryption success is not equivalent to a full restore drill: any reconstruction after deletion is a separate controlled change.
+The authorized recovery custodian should verify that the age backup is decryptable **without displaying raw Secret data or tls.key**:
+
+~~~bash
+# Run only in the custodian's approved secure environment with the recovery identity.
+BACKUP="/SECURE/HANDOFF/delete-EXACT_PLAN_ID-backup.age"
+RECOVERY_ID="/SECURE/RECOVERY/identity.txt"
+set -o pipefail
+age -d -i "$RECOVERY_ID" "$BACKUP" |
+  python3 -c 'import json,sys; s=json.load(sys.stdin); print("Backup target:", s["metadata"]["namespace"] + "/" + s["metadata"]["name"]); print("Type:", s["type"]); print("Decryption: PASS")'
+~~~
+
+The command prints target metadata only. Do not redirect plaintext backup to disk or paste decrypted Secret data into logs. Decryption success is not equivalent to a full restore drill: any reconstruction after deletion is a separate controlled change.
 
 Preserve the plan, final signed approval, signature, journal, encrypted backup, change ticket and acceptance evidence in restricted storage. Do not publish them or delete the workspace.
 
