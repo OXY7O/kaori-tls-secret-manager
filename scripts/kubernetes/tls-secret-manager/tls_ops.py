@@ -500,9 +500,8 @@ def cli():
             # Offline inventory replay is intentionally unsupported: it could
             # mint a misleading fresh audit timestamp for stale data.
             prom = path.with_name("kaori_tls.prom")
-            with prom.open("x", encoding="utf-8") as f:
+            with os.fdopen(os.open(prom, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as f:
                 f.write(text)
-            prom.chmod(0o600)
             print(f"METRICS: {prom}")
             print(f"EVIDENCE: {path}")
             return 0
