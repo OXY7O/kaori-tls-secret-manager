@@ -6,6 +6,10 @@ The project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced the initial shield-K logo with the approved transparent **Kaori TLS Management** PNG wordmark and matching orbital-K icon; refreshed the interactive terminal fallback without changing lifecycle operations.
+
 ### Added
 
 - Original KAORI guided terminal wizard with inventory, reporting and diagnostics, TLS Inventory, Expiry Audit, Toolbox, renewal, HOLD review, run history and HTTPS verification.
