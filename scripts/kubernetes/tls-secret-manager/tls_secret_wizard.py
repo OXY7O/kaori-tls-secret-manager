@@ -1494,7 +1494,9 @@ def choose_previous_plan(args, held_only=False, purpose="history"):
     else:
         warning("No matching saved renewal runs were found in this workspace.")
         if purpose == "reverify":
-            hint("Reverify HTTPS requires an existing renewal plan and execution journal.")
+            hint("Main menu 5 > Renew TLS creates renewal-plan.json at Step 5/9.")
+            hint("Reverify HTTPS needs that plan AND a journal from an executed renewal.")
+            hint("A plan alone is not enough. Do not renew just to test HTTPS.")
             hint("For a first-time HTTPS check: Main menu 3 > TLS Toolbox > 4. TLS Doctor.")
         elif held_only:
             hint("Review HOLD requires a saved renewal plan with held targets.")
@@ -1518,6 +1520,7 @@ def choose_previous_plan(args, held_only=False, purpose="history"):
             warning("results.json is a diagnostic report, not a renewal-plan.json.")
             if purpose == "reverify":
                 hint("TLS Doctor evidence cannot replace a saved renewal plan and journal.")
+                hint("Menu 5 creates renewal-plan.json at Step 5/9; menu 4 requires an executed renewal.")
                 hint("For a new HTTPS check use Main menu 3 > TLS Toolbox > 4. TLS Doctor.")
         else:
             warning("No valid renewal-plan.json found at that location.")
