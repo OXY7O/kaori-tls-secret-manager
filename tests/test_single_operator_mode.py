@@ -108,6 +108,31 @@ class SingleOperatorModeTests(unittest.TestCase):
         self.assertNotIn("--approval-record", apply_tokens)
         self.assertNotIn("--approval-signature", apply_tokens)
 
+    def test_held_delete_shows_named_resources_without_write_or_recovery_setup(self):
+        args = types.SimpleNamespace(context=None)
+        hold = {"status": "HOLD", "action": "DELETE",
+                "target": "sandbox/in-use-tls",
+                "reason": "SECRET_IN_USE",
+                "blockers": ["Ingress TLS reference: sandbox/web",
+                             "Pod dependency: sandbox/frontend"],
+                "evidence": "/private/delete-hold.json"}
+        with patch.object(wizard, "exec_read", side_effect=[
+            "dev-context\n", '{"items":[{"metadata":{"name":"sandbox"}}]}']), \
+             patch.object(wizard, "choose", side_effect=["dev-context", "sandbox"]), \
+             patch.object(wizard, "ask", side_effect=["in-use-tls", ""]), \
+             patch.object(wizard, "local_recovery_identity",
+                          side_effect=AssertionError("HOLD must not set up key")), \
+             patch.object(wizard, "crud_command", return_value=hold) as cmd, \
+             redirect_stdout(StringIO()) as output:
+            result = wizard.crud_wizard(args, "delete")
+        self.assertEqual(result["status"], "HOLD")
+        self.assertEqual(cmd.call_count, 1)
+        text = output.getvalue()
+        self.assertIn("DELETE ON HOLD", text)
+        self.assertIn("Ingress TLS reference: sandbox/web", text)
+        self.assertIn("Pod dependency: sandbox/frontend", text)
+        self.assertIn("No executable plan", text)
+
     def test_delete_plan_only_does_not_run_write(self):
         args = types.SimpleNamespace(context=None)
         with patch.object(wizard, "exec_read", side_effect=[
