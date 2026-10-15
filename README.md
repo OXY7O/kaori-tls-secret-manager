@@ -49,9 +49,9 @@ The latter is the **original advanced renewal engine**. The former exposes expli
 
 The existing advanced renewal remains the default **Update** workflow. The standalone `crud update` is an additional single-target, same-SAN alternative, not a replacement for the original renewal engine.
 
-**Mutation is never automatic.** Create and Delete first produce a **read-only plan**. Execution requires an explicit decision, signed approval JSON and detached signature, a trusted root-owned approver public key, exact PLAN ID/target confirmation, and for Delete an age-encrypted recovery backup. Guardrails stop on unsafe state; no blind retry or automatic rollback. An offline test PASS does **not** prove Kubernetes UAT/production compatibility.
+**Mutation is never automatic.** Guided Create/Delete (menu 10/11) default to a **single-operator** read-only plan followed by exact action/target and Plan ID confirmations. Delete also requires the operator to confirm external consumers are absent; KAORI automatically uses or provisions a protected age recovery key, encrypts the original Secret and verifies backup decryptability **before** issuing a guarded Delete. No approval JSON, detached signature or root-owned approver trust key is needed for the interactive single-operator workflow. A separate signed-approval path remains available for non-interactive/enterprise clients. No blind retry, forced Delete or automatic rollback.
 
-For exact laptop setup and non-mutating checks, see [LOCAL-TEST.md](docs/LOCAL-TEST.md). For approval and backup procedures, see [OPERATOR-GUIDE.md](docs/OPERATOR-GUIDE.md). Follow [SECURITY.md](SECURITY.md) and [RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) before any release.
+For laptop usage and non-mutating checks, see [LOCAL-TEST.md](docs/LOCAL-TEST.md). For the simplified single-person Delete wizard see [DELETE-TLS-SECRET-SOP.md](docs/DELETE-TLS-SECRET-SOP.md). Advanced signed CLI usage remains in [OPERATOR-GUIDE.md](docs/OPERATOR-GUIDE.md). Review [SECURITY.md](SECURITY.md) and [RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) before any release.
 
 ## Maintenance and provenance
 
