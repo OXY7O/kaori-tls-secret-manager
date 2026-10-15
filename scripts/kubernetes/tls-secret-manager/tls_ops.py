@@ -386,9 +386,30 @@ def check_run(ctx, plan_path):
                          "Never blindly replay renew or rollback."}
 
 
+def default_metrics_cluster_label(context):
+    """Make a Prometheus-safe, readable default from a kubectl context name.
+
+    For common user@cluster names, use the cluster suffix rather than leaking
+    the operator username into Prometheus labels. Nonstandard names are
+    sanitized and get a deterministic suffix if truncation is necessary.
+    Explicit --cluster-label always overrides this suggestion.
+    """
+    check(isinstance(context, str) and bool(context.strip()),
+          "A Kubernetes context is required for the default metrics label")
+    candidate = context.rsplit("@", 1)[-1] if "@" in context else context
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", candidate).strip("_.-")
+    check(bool(safe), "Cannot derive a safe metrics label; specify --cluster-label")
+    if len(safe) > 100:
+        import hashlib
+        safe = safe[:91].rstrip("_.-") + "-" + hashlib.sha256(
+            context.encode("utf-8")).hexdigest()[:8]
+    return safe
+
+
 def prometheus_metrics(rows, cluster="unknown"):
     """Aggregates only; bounded cardinality, no secret values or private material."""
-    check(bool(re.fullmatch(r"[A-Za-z0-9_.-]{1,100}", cluster)), "Invalid cluster label")
+    check(bool(re.fullmatch(r"[A-Za-z0-9_.-]{1,100}", cluster)),
+          "Invalid cluster label; use 1-100 letters, digits, dots, dashes or underscores")
     counter = {}
     for item in rows:
         state = item.get("status", "INVALID")
@@ -467,7 +488,7 @@ def cli():
         elif args.command == "reconcile-run":
             result = check_run(ctx, args.plan)
         elif args.command == "metrics":
-            text = prometheus_metrics(rows, args.cluster_label or ctx or "inventory")
+            text = prometheus_metrics(rows, args.cluster_label or default_metrics_cluster_label(ctx))
             path = atomic_evidence(args.output_dir, "tls-metrics",
                                    {"metrics": text, "audit_source": "LIVE_KUBERNETES",
                                     "context": ctx, "namespaces": names,
