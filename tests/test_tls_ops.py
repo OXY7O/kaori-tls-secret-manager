@@ -45,6 +45,21 @@ class TLSOpsTests(unittest.TestCase):
              patch.object(ops, "run", return_value=pub):
             return ops.validate_stored_tls(obj or secret(), 30, ca_bundle=ca)
 
+    def test_atomic_evidence_is_private_under_permissive_umask(self):
+        import os
+        import stat
+        previous_umask = os.umask(0)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                path = ops.atomic_evidence(Path(tmp) / "private", "health",
+                                           {"secret_name": "synthetic-web-tls"})
+                mode = stat.S_IMODE(path.stat().st_mode)
+                folder_mode = stat.S_IMODE(path.parent.stat().st_mode)
+        finally:
+            os.umask(previous_umask)
+        self.assertEqual(mode, 0o600)
+        self.assertEqual(folder_mode, 0o700)
+
     def test_valid_stored_key_not_endorsed_as_public_tls(self):
         out = self.validate()
         self.assertEqual(out["status"], "VALID")
