@@ -39,7 +39,7 @@ bash scripts/tls-secret-manager.sh crud --help
 - Keep the scope narrow. Explain **why** the change is needed and which CLI functions, menus, evidence artifacts or safeguards are affected.
 - Include automated tests for behavioral changes, especially **HOLD, RBAC errors, controller ownership, API timeout, UID/resourceVersion drift, encryption failure and uncertain result** cases.
 - Preserve the wizard's single-operator workflow without imposing manual enterprise approval artifacts; keep advanced signed approval flows as explicitly separate options.
-- Preserve menu option numbering 1–11, legacy CLI semantics, readable errors and `--plain`/`NO_COLOR` compatibility unless an intentionally versioned change is agreed.
+- Preserve guided operation semantics, legacy commands, readable errors and `--plain`/`NO_COLOR` compatibility unless an intentionally versioned change is agreed.
 - Do not weaken dependency checks, backup requirements, immutable plan checks or server-side mutation preconditions to make a test pass.
 - Document user-facing additions in README, [command reference](docs/COMMAND-REFERENCE.md) and [CHANGELOG.md](CHANGELOG.md) where relevant.
 - Include a short manual test plan and distinguish **offline PASS** from Kubernetes DEV/UAT acceptance.
