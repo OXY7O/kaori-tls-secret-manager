@@ -12,7 +12,7 @@ Security-impacting decisions require explicit review of failure modes, dependenc
 
 - **Contributors** propose focused changes and respond to review.
 - **Maintainers** triage reports, review patches, curate milestones, approve merges and control repository settings.
-- **Release maintainers** additionally validate the [release checklist](docs/RELEASE-CHECKLIST.md), versioning, integrity evidence and change log before creating a public release.
+- **Release maintainers** additionally validate the [release policy](docs/RELEASE-POLICY.md), versioning, integrity evidence and change log before creating a public release.
 
 Maintainers retain final discretion over merges, security disclosure coordination, release approval, branch policy and moderation. No current support SLA or dedicated maintainer on-call schedule is implied.
 

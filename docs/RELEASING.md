@@ -1,6 +1,6 @@
 # Publishing Semantic Versioned Source Releases
 
-KAORI TLS Management follows [Semantic Versioning](https://semver.org/) using `vMAJOR.MINOR.PATCH` Git tags. The first public source release is `v0.1.0`. The `0.y.z` series represents **initial development**; CLI, JSON shapes and operator workflows may change.
+KAORI TLS Management follows [Semantic Versioning](https://semver.org/) using `vMAJOR.MINOR.PATCH` Git tags. The first public source release is `v0.1.0`. The `0.y.z` series allows the project to evolve its CLI, JSON formats and operator workflows between releases.
 
 ## Choosing the version
 
@@ -22,4 +22,4 @@ Use a **new version** for subsequent releases; never recycle an existing tag or 
 
 ## Operational boundary
 
-A versioned GitHub source release is **not** evidence of accepted production Kubernetes deployments. Complete `docs/RELEASE-CHECKLIST.md`, including real DEV/UAT, independent security review, backup restoration and owner sign-off, before declaring production readiness. Production governance remains outside this versioning workflow.
+A versioned source release certifies the published commit and its automated Quality Gate only; it does not certify third-party Kubernetes environments. Administrators must follow the [release policy](RELEASE-POLICY.md), security guidance and their own authorization, recovery and endpoint verification procedures.

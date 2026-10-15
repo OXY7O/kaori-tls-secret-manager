@@ -2,7 +2,7 @@
 
 **Audience:** one authorized operator using the original KAORI interactive terminal menu.
 
-**Safety:** This guide requires an explicitly approved Kubernetes environment. The availability of this workflow does not authorize production deletion. There are no external approval JSON files, signature files, trusted approver key installation, or separate role handoffs in the **interactive single-operator workflow**.
+**Safety:** Follow your organization’s Kubernetes authorization, dependency verification and change-management requirements before any deletion. There are no external approval JSON files, signature files, trusted approver key installation, or separate role handoffs in the **interactive single-operator workflow**.
 
 ## One-time setup
 
@@ -84,7 +84,7 @@ On the Step 1 prompt, press **Enter** rather than typing PROCEED. That creates a
 | MUTATION_UNCERTAIN or unknown API outcome | **Do not retry**; inspect journal and real Kubernetes state. |
 | Missing Secret but consumer health degraded | Escalate incident and follow separately approved recovery procedure using the encrypted backup. |
 
-### Single-operator test checklist
+### Single-operator verification checklist
 
 - [ ] Correct context, namespace and Secret name selected
 - [ ] Kubernetes references and external consumers reviewed
@@ -99,4 +99,4 @@ On the Step 1 prompt, press **Enter** rather than typing PROCEED. That creates a
 
 The lower-level non-interactive scripts/tls_crud.py retains signed-approval support for users with an organizational separation-of-duties requirement. **It is not the recommended/default single-operator experience** and should not be needed to use the guided Create/Delete operations. In that mode, a separate approver, signed JSON and registered trust key are intentionally still required. The original guided renewal engine may have additional review/signature policies for multi-target or externally terminated TLS changes.
 
-See Operator Guide (OPERATOR-GUIDE.md), Security (../SECURITY.md) and Local test (LOCAL-TEST.md).
+See the [Operator guide](OPERATOR-GUIDE.md), [Security policy](../SECURITY.md) and [Installation guide](INSTALLATION.md).

@@ -15,7 +15,7 @@ Describe what changed and why operators or contributors need it.
 - [ ] Bash syntax checks run for modified launchers
 - [ ] Help and `--plain` checked if CLI output changed
 - [ ] Negative cases and fail-closed behavior covered if any mutation path changed
-- [ ] Real DEV/UAT evidence is **not** presented as passed unless independently verified
+- [ ] Kubernetes-specific validation, if applicable, is documented separately from automated CI results
 
 ## Safety and privacy
 
@@ -29,4 +29,4 @@ Closes #
 
 ## Release impact
 
-Explain whether a version or release checklist update is required. Merging a PR does not automatically imply production acceptance.
+Explain whether versioning, release notes, or operator/security documentation must change. A merged PR does not authorize changes to third-party infrastructure.
