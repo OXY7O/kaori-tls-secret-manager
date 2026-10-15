@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/kaori-logo.png" width="660" alt="KAORI TLS Certificate Manager — Kubernetes TLS management utility">
+  <img src="assets/kaori-logo.png" width="660" alt="KAORI TLS Management — Kubernetes TLS certificate utility">
 </p>
 
 <p align="center">
@@ -158,4 +158,4 @@ Contributions, bug reports, accessibility improvements and sanitized synthetic r
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
-The PNG [wordmark](assets/kaori-logo.png) and [shield mark](assets/kaori-mark.png) are project identity assets. The utility renders the PNG in supported terminals and a matching text-safe shield elsewhere, respecting plain-text mode.
+The approved transparent PNG [wordmark](assets/kaori-logo.png) and [orbital-K icon](assets/kaori-mark.png) are the project identity assets. Supported terminals display the wordmark; other terminals use a matching text-safe mark. Plain-text mode remains supported.
