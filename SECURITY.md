@@ -6,7 +6,7 @@ KAORI TLS Certificate Manager operates on sensitive Kubernetes TLS Secret materi
 
 | Source | Security support |
 | --- | --- |
-| Development preview (**0.1.0-dev**) | Best-effort review only; **no production security assurance** |
+| Community prerelease (**0.1.0-rc.1**) | Best-effort review only; **no production security assurance** |
 | Published stable releases | None yet; supported versions will be listed here when released |
 
 Offline tests do not establish real-cluster acceptance. There is currently **no guaranteed security response SLA, embargo policy or production support window**.
@@ -34,7 +34,7 @@ Maintainers will assess reports and coordinate a fix/disclosure when possible; n
 
 ## Current limitations
 
-- The complete application is on a development branch and has not completed independent security/privacy review and real DEV/UAT acceptance after transfer.
+- The complete application is distributed from `main` as a prerelease and has not completed independent security/privacy review and real DEV/UAT acceptance after transfer.
 - Encrypted backup **restore on real infrastructure** and compatibility across kubectl/Kubernetes combinations are not yet release-accepted.
 - No automated bulk Delete, force-delete mode, ACME issuance, unattended writes or automatic rollback.
 - The advanced renewal workflow and single-target CRUD Update have different operational interfaces; read the [operator guide](docs/OPERATOR-GUIDE.md) before using either.
