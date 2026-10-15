@@ -293,7 +293,9 @@ def dependency_evidence(context, namespace, name, *, detailed=False):
 
     resources = kube(context, "api-resources", "--api-group=gateway.networking.k8s.io",
                      "-o", "name").decode("utf-8")
-    if "gateways.gateway.networking.k8s.io" in resources.splitlines():
+    # Match an entire API resource name; prefix/substrings are not valid CRDs.
+    if any(resource == "gateways.gateway.networking.k8s.io"
+           for resource in resources.splitlines()):
         gateways = kube_json(context, "get", "gateways.gateway.networking.k8s.io", "-A", "-o", "json")
         for gw in gateways.get("items", []):
             for listener in (gw.get("spec", {}).get("listeners") or []):
