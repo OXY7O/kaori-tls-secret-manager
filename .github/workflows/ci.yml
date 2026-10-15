@@ -1,0 +1,25 @@
+name: Offline Security and CRUD Regression
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile source
+        run: python3 -m py_compile scripts/tls_crud.py
+      - name: Offline regression
+        run: python3 -m unittest discover -s tests -v
+      - name: No cluster access in CI
+        run: |
+          test -z "${KUBECONFIG:-}"
+          echo 'No real cluster or Secret write permitted in CI.'
