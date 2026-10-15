@@ -35,13 +35,9 @@ EXPECTED = {
 }
 
 REASON = (
-    "Reviewed under KAORI security audit #17. This data-flow sink displays "
-    "Kubernetes Secret RESOURCE IDENTITY or diagnostic metadata intentionally "
-    "to the authorized operator, not Kubernetes Secret VALUE, tls.key, "
-    "kubeconfig, recovery identity, or credentials. Operational metadata is "
-    "confidential: restrict terminal logs, stdout capture, screenshots and "
-    "evidence to the authorized operator per docs/CODE-SCANNING.md. "
-    "Intentional CLI behavior retained; residual metadata exposure accepted."
+    "Audit #17: intended operator-only Secret resource names/TLS diagnostics, "
+    "not key values. Protect stdout and evidence per docs/CODEQL-DISPOSITIONS.md. "
+    "Accepted residual metadata exposure."
 )
 
 
@@ -115,9 +111,17 @@ if __name__ == "__main__":
     try:
         main()
     except urllib.error.HTTPError as exc:
-        # Do not print URL, headers, response body or token.
-        print("REVIEWED_DISPOSITION_STOPPED: HTTP " + str(exc.code),
-              file=sys.stderr)
+        # Emit only a fixed category; never expose API response text or tokens.
+        try:
+            message = str(json.loads(exc.read(4096)).get("message", "")).lower()
+        except (ValueError, OSError):
+            message = ""
+        category = ("invalid-comment" if "comment" in message else
+                    "delegated-dismissal" if "delegated" in message else
+                    "invalid-reason" if "reason" in message else
+                    "other-validation")
+        print("REVIEWED_DISPOSITION_STOPPED: HTTP " + str(exc.code) +
+              " [" + category + "]", file=sys.stderr)
         raise SystemExit(1)
     except (ValueError, urllib.error.URLError, OSError) as exc:
         print("REVIEWED_DISPOSITION_STOPPED: " + type(exc).__name__,
