@@ -15,7 +15,7 @@ The project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Single-operator prompted confirmations, an optional independent signed-approval flow, age-encrypted recovery for destructive operations and write journals.
 - Local **TLS Doctor** with certificate-versus-HTTPS fingerprint and trust diagnostics, plus local Prometheus textfile metrics export.
 - Offline regression tests, Linux/WSL validation guide and scoped GitHub Actions CI.
-- Public-facing documentation, branding assets, CLI reference, issue templates, contribution and community governance guidance.
+- Public-facing documentation, PNG branding assets, terminal-integrated shield identity, command reference, issue templates, contribution and community governance guidance.
 
 ### Security
 
