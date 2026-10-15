@@ -1,4 +1,4 @@
-name: Offline Security and Full KAORI Regression
+name: KAORI CI & Release
 on:
   push:
     branches: [main, "feat/**"]
@@ -6,16 +6,17 @@ on:
 permissions:
   contents: read
 jobs:
-  offline:
+  quality_gate:
+    name: Quality Gate
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile all CLI modules
+      - name: Syntax Checks
         run: |
           python3 -m py_compile scripts/tls_crud.py \
             scripts/kubernetes/tls-secret-manager/tls_secret_manager.py \
@@ -24,22 +25,22 @@ jobs:
             scripts/kubernetes/tls-secret-manager/tls_ops.py
           bash -n scripts/tls-secret-manager.sh scripts/kaori-tls-secret-manager.sh \
             scripts/kubernetes/tls-secret-manager/tls-secret-manager.sh
-      - name: Complete offline regressions (historical plus CRUD)
+      - name: Regression Tests
         run: python3 -m unittest discover -s tests -v
-      - name: Test entrypoints offline
+      - name: CLI Smoke Tests
         run: |
           bash scripts/tls-secret-manager.sh doctor
           bash scripts/tls-secret-manager.sh --help
           bash scripts/tls-secret-manager.sh crud --help
           bash scripts/tls-secret-manager.sh wizard --help
-      - name: No cluster access in CI
+      - name: Cluster Isolation
         run: |
           test -z "${KUBECONFIG:-}"
           echo 'No real cluster or Secret write permitted in CI.'
 
   publish_release:
-    name: Publish Semantic Versioned Source Release
-    needs: offline
+    name: Publish Release
+    needs: quality_gate
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -53,7 +54,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Validate SemVer release manifest and build archive
+      - name: Package & Verify
         shell: bash
         run: |
           set -euo pipefail
@@ -73,7 +74,7 @@ jobs:
             --output="dist/${ARCHIVE}" HEAD
           tar -tzf "dist/${ARCHIVE}" >/dev/null
           ( cd dist && sha256sum "${ARCHIVE}" > SHA256SUMS )
-      - name: Publish immutable release and checksums
+      - name: Publish Tag & Checksums
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
