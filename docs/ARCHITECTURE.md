@@ -46,7 +46,7 @@ Operational documentation source: `OXY7O/ops-runbooks` (private)
 
 - Reject missing or partial reference visibility. Inspect Ingress TLS, Gateway API certificateRefs (where available), Pod references, ownerReferences, cert-manager/controller associations, and declared external consumers. Discovery cannot prove absence of every external client: require owner attestation.
 - Reject any controller-managed Secret, ambiguous consumer, namespace or cluster drift. Default to **blocked** for live references. No cascade deletions.
-- Require independently approved change ticket and exact target confirmation, encrypted backup of the original Secret, and short-lived deletion plan bound to cluster UID, Secret UID, resourceVersion and fingerprint.
+- Require explicit single-operator typed target/action, immutable Plan ID, external-consumer attestation, encrypted backup with recovery roundtrip, and short-lived deletion plan bound to cluster UID, Secret UID, resourceVersion and fingerprint.
 - Use Kubernetes deletion **preconditions** on UID/resourceVersion (atomic API-side verification). Re-read or reconcile if preconditions fail; never delete by name alone on retry.
 - Verify target absence and that application dependencies/other Secrets were unaffected. Store immutable disposition as complete, stopped, or uncertain; no unverified success.
 - Initial release: one target per deletion. Bulk deletion, force, garbage collection or Secret ownership bypass are out of scope.
