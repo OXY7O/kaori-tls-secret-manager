@@ -220,7 +220,7 @@ def show_operator_help():
         ("1", "Inventory", "Read-only Secret + Ingress overview; CSV/JSON/Markdown evidence."),
         ("2", "Expiry audit", "Read-only validity/expiry dates from stored TLS Secrets."),
         ("3", "Toolbox", "Read-only health, families, dependencies, TLS Doctor, drift and metrics."),
-        ("4", "Reverify", "Recheck HTTPS from an existing run; local evidence may change."),
+        ("4", "Reverify", "Recheck HTTPS from an existing renewal run; for a new test use Toolbox > TLS Doctor."),
         ("5", "Renew TLS", "Guided plan, authorized backup/write, verification and reporting."),
         ("6", "Review HOLD", "Review previously held targets; no Secret changes in review."),
         ("7", "History", "Inspect existing private run folders and journals."),
@@ -1480,28 +1480,41 @@ def recent_plans(args, held_only=False):
     return found
 
 
-def choose_previous_plan(args, held_only=False):
+def choose_previous_plan(args, held_only=False, purpose="history"):
+    """Allow optional manual plans, but make empty-history navigation easy to exit."""
     candidates = recent_plans(args, held_only=held_only)
     header("SELECT A PREVIOUS RUN")
     if candidates:
-        print("Select a run number below (up to 20 most recent):")
+        print("  Select a saved run (up to 20 most recent):")
         for i, (path, context, held, state) in enumerate(candidates, 1):
             print(f"  {i:>2}. {path.parent.name} | context={context} | HOLD={held}")
             print(f"      Status: {state}")
-        print("Alternatively enter a full renewal-plan.json path for a manual run.")
+        print()
+        hint("You can also enter the full path to a saved renewal-plan.json.")
     else:
-        warning("No matching previous wizard runs were found.")
-        hint("For older manual runs, enter the full renewal-plan.json path.")
+        warning("No matching saved renewal runs were found in this workspace.")
+        if purpose == "reverify":
+            hint("Reverify HTTPS requires an existing renewal plan and execution journal.")
+            hint("For a first-time HTTPS check: Main menu 3 > TLS Toolbox > 4. TLS Doctor.")
+        elif held_only:
+            hint("Review HOLD requires a saved renewal plan with held targets.")
+        else:
+            hint("Run History shows saved renewal plans; use menu 5 to create a new plan.")
+        hint("If a run was saved elsewhere, enter its full renewal-plan.json path.")
+    print()
+    print("  Press Enter or type 0/QUIT to return without making changes.")
     while True:
-        answer = ask("Run number or renewal-plan.json path (QUIT to cancel)")
-        if answer.upper() == "QUIT":
+        prompt = ("Run number or renewal-plan.json path (Enter=Back)"
+                  if candidates else "Full renewal-plan.json path (Enter=Back)")
+        answer = ask(prompt, "").strip()
+        if not answer or answer.upper() in ("0", "QUIT"):
             return None
         if answer.isdecimal() and 1 <= int(answer) <= len(candidates):
             return str(candidates[int(answer) - 1][0])
         path = Path(answer).expanduser()
         if path.is_file() and path.name == "renewal-plan.json":
             return str(path.resolve())
-        warning("Run not found. Enter a listed number or a valid file path.")
+        warning("Run not found. Enter a valid path or press Enter to return.")
 
 
 def toolkit_menu(args):
@@ -1649,7 +1662,7 @@ def toolkit_menu(args):
 
 def reverify_existing_run(args):
     """Verification-only on a previously written run; never invokes renew."""
-    plan_location = choose_previous_plan(args)
+    plan_location = choose_previous_plan(args, purpose="reverify")
     if not plan_location:
         return
     path = Path(plan_location).resolve()
@@ -1839,7 +1852,7 @@ def main_menu(args):
         menu_entry("1", "Inventory", default=True)
         menu_entry("2", "Expiry audit")
         menu_entry("3", "TLS Toolbox")
-        menu_entry("4", "Verify HTTPS")
+        menu_entry("4", "Reverify HTTPS")
         print()
         menu_entry("5", "Renew TLS", caution=True)
         menu_entry("6", "Review HOLD")
