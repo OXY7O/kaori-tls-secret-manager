@@ -1760,96 +1760,131 @@ def crud_command(context, command, *options):
         raise Stop("Unexpected CRUD CLI response; check local execution logs") from exc
 
 
+def local_recovery_identity():
+    """Prepare the age recovery identity once; never print or export private key data."""
+    home = Path.home()
+    identity = home / ".config" / "age" / "k8s-tls-recovery.txt"
+    if not identity.exists():
+        identity = home / ".config" / "kaori-tls" / "recovery.agekey"
+        if not identity.exists():
+            warning("A protected age recovery key is needed before deleting a Secret.")
+            hint("KAORI can generate it once; later Delete runs reuse it automatically.")
+            check(ask("Type SETUP to create a local recovery key (Enter=Back)") == "SETUP",
+                  "Recovery key setup cancelled")
+            folder = identity.parent
+            check(not folder.is_symlink() and not identity.is_symlink(),
+                  "Recovery key directory/path must not be a symlink")
+            folder.mkdir(parents=True, mode=0o700, exist_ok=True)
+            check(folder.stat().st_mode & 0o077 == 0,
+                  "Recovery key directory must be private (0700)")
+            proc = subprocess.run(["age-keygen", "-o", str(identity)],
+                                  capture_output=True, text=True, timeout=30)
+            check(proc.returncode == 0, "Unable to generate age recovery key")
+            identity.chmod(0o600)
+            print("  Recovery key created in your private local configuration.")
+            warning("Keep a separate secure copy. If you lose this key, backups cannot be restored.")
+            check(ask("Type RECOVERY to acknowledge backup-key custody") == "RECOVERY",
+                  "Recovery-key custody not confirmed; Delete cancelled")
+    check(identity.is_file() and not identity.is_symlink() and
+          identity.stat().st_mode & 0o077 == 0,
+          "Local recovery identity missing or unsafe (file must be 0600)")
+    proc = subprocess.run(["age-keygen", "-y", str(identity)],
+                          capture_output=True, text=True, timeout=30)
+    recipient = proc.stdout.strip()
+    check(proc.returncode == 0 and recipient.startswith("age1") and len(recipient) > 20,
+          "Unable to read the matching age public backup recipient")
+    return identity, recipient
+
+
 def crud_wizard(args, operation):
-    """Create and Delete from the original menu; no automatic Kubernetes writes."""
+    """One-person guided Create/Delete; retain immutable plans and fail-closed writes."""
     check(operation in ("create", "delete"), "Unsupported lifecycle operation")
     is_delete = operation == "delete"
-    header(("DELETE TLS SECRET" if is_delete else "CREATE TLS SECRET") +
-           " / GUIDED CHANGE")
-    warning("DEV/UAT ONLY. Planning reads Kubernetes; signed approval is mandatory for writes.")
+    action = operation.upper()
+    header(f"{action} TLS SECRET / GUIDED CHANGE")
+    hint("Single-operator mode: no separate approval documents or signatures.")
+    hint("Read-only planning first; all Kubernetes writes require explicit confirmation.")
     if is_delete:
-        warning("Delete is a decommission operation. Active references or unknown ownership BLOCK it.")
-        hint("No bulk delete, no automatic retry or rollback. The backup must be recoverable.")
+        warning("Delete is permanent until separately restored from an encrypted backup.")
+        hint("Active references, controller ownership, or unknown dependencies still BLOCK Delete.")
     else:
-        hint("Create requires operator-provided certificate/key; this tool does not issue certificates.")
-        hint("An existing Secret name is NEVER overwritten by Create.")
+        hint("Create never overwrites an existing Secret; provide a valid PEM/key pair.")
 
     contexts = exec_read(["kubectl", "config", "get-contexts", "-o", "name"]).splitlines()
     context = args.context or choose("Kubernetes context", contexts)
     check(context in contexts, "Unknown Kubernetes context")
     ns_data = json.loads(exec_read(["kubectl", "--context", context,
                                    "--request-timeout=20s", "get", "namespaces", "-o", "json"]))
-    namespaces = sorted(x["metadata"]["name"] for x in ns_data["items"])
-    namespace = choose("Target namespace", namespaces)
+    namespace = choose("Target namespace", sorted(
+        x["metadata"]["name"] for x in ns_data["items"]))
     name = ask("Exact TLS Secret name (BACK to cancel)")
-    # Reuse the established DNS-subdomain safety conventions, but validation
-    # of names/types is ultimately enforced by the CRUD engine and Kubernetes.
-    check(bool(name) and not any(ch.isspace() for ch in name) and not name.startswith("-"),
-          "Invalid target Secret name")
+    check(bool(name) and not any(ch.isspace() for ch in name) and
+          not name.startswith("-"), "Invalid target Secret name")
     workspace = Path(ask("Private evidence root (outside source repository)",
                          str(Path.home() / "k8s-tls-private" / "crud-runs"))).expanduser()
     check(not workspace.is_symlink() and HERE not in workspace.resolve().parents,
           "Evidence cannot be written to the source checkout")
     options = ["--namespace", namespace, "--secret", name, "--workspace", workspace]
     cert = key = ca = None
-    if not is_delete:
+    backup_identity = backup_recipient = None
+    if is_delete:
+        backup_identity, backup_recipient = local_recovery_identity()
+        ok("Encrypted backup recovery key is available.")
+    else:
         cert, key, ca = choose_certificate_inputs(args)
         options += ["--cert", cert, "--key", key]
         if ca:
             options += ["--ca-bundle", ca]
-    step(1, 3, "Read-only preflight and immutable plan",
-         "No Secret creation/deletion occurs during planning.")
+
+    step(1, 3, "Read-only target checks and immutable plan",
+         "Nothing will be created or deleted during this step.")
     result = crud_command(context, "plan-delete" if is_delete else "plan-create", *options)
     plan_path = Path(result["plan"]).expanduser().resolve()
     planid = result["plan_id"]
     file_hint("Immutable lifecycle plan", plan_path)
-    print(f"  Target : {namespace}/{name}")
-    print(f"  Action : {'DELETE' if is_delete else 'CREATE'}")
-    print(f"  Plan ID: {planid}")
-    warning("Operator approval must be independent and signed with a trusted key.")
-    hint("See docs/OPERATOR-GUIDE.md for the signed approval format and requirements.")
-    if ask("Continue to approval and execution? Type EXECUTE; Enter leaves plan only", "") != "EXECUTE":
+    print(f"  Context : {context}")
+    print(f"  Target  : {namespace}/{name}")
+    print(f"  Action  : {action}")
+    print(f"  Plan ID : {planid}")
+    hint("Plan expires in 30 minutes. Enter leaves this as a read-only plan.")
+    if ask(f"Type PROCEED to review and confirm {action} (Enter=Plan only)") != "PROCEED":
         ok("Plan saved only. Kubernetes Secrets were not modified.")
         return result
 
-    step(2, 3, "Independent approval and exact scope confirmation",
-         "A signed approval does not bypass Kubernetes preconditions.")
-    record = Path(ask("Signed approval JSON path")).expanduser()
-    signature = Path(ask("Detached SHA256 signature path")).expanduser()
-    trusted = Path(ask("Root-owned approved public key path",
-                       "/etc/kaori/tls-approval-public.pem")).expanduser()
-    check(record.is_file() and signature.is_file() and trusted.is_file(),
-          "Approval record, signature and trusted public key are required")
-    backup = None
+    step(2, 3, "Operator review and explicit confirmation",
+         "One target, one attempt. Kubernetes state is checked again before mutation.")
     if is_delete:
-        backup = ask("age recovery public recipient (age1...)")
-        check(backup.startswith("age1") and len(backup) > 20,
-              "Valid age public backup recipient is required for Delete")
-    check(ask("Type AUTHORIZED to confirm approved scope") == "AUTHORIZED",
-          "Operator cancelled before Kubernetes mutation")
-    check(ask("Type the exact PLAN ID to approve the write") == planid,
+        warning("Review dependencies beyond Kubernetes (proxy, LB, monitoring, external consumers).")
+        check(ask("Type UNUSED to confirm the Secret has no external consumers") == "UNUSED",
+              "Delete cancelled: external consumer safety not confirmed")
+    exact_target = f"{namespace}/{name}"
+    check(ask(f"Type {action} {exact_target} to confirm") == f"{action} {exact_target}",
+          "Operation and target confirmation did not match")
+    check(ask("Type the exact Plan ID to authorize the change") == planid,
           "Plan ID confirmation mismatch")
-    check(ask("Type exact namespace/Secret to confirm target") == f"{namespace}/{name}",
-          "Target confirmation mismatch")
-    step(3, 3, "Execute with encrypted recovery evidence",
-         "One attempt only. Reconcile uncertain outcomes; never blindly retry.")
+
+    step(3, 3, "Execute once and verify Kubernetes response",
+         "Encrypted recovery backup is validated BEFORE Delete; no automatic retry.")
     apply_args = ["--namespace", namespace, "--secret", name,
                   "--plan", plan_path, "--approve", planid,
-                  "--confirm-target", f"{namespace}/{name}",
-                  "--approval-record", record,
-                  "--approval-signature", signature,
-                  "--approval-trust-key", trusted]
+                  "--confirm-target", exact_target,
+                  "--operator-mode", "--operator-ack", f"{action} {exact_target}"]
     if is_delete:
-        apply_args += ["--backup-recipient", backup]
+        apply_args += ["--operator-attested",
+                       "--backup-recipient", backup_recipient,
+                       "--backup-identity", backup_identity]
     else:
         apply_args += ["--cert", cert, "--key", key]
         if ca:
             apply_args += ["--ca-bundle", ca]
     outcome = crud_command(context, operation, *apply_args)
-    ok(f"{operation.upper()} completed with Kubernetes readback evidence.")
+    ok(f"{action}: {outcome['status']}")
     file_hint("Lifecycle journal", outcome["journal"])
+    if is_delete:
+        file_hint("Encrypted recovery backup",
+                  plan_path.with_name(f"delete-{planid}-backup.age"))
+        hint("Preserve the backup, plan, journal and recovery key. Restore is a separate action.")
     return outcome
-
 
 
 def main_menu(args):
