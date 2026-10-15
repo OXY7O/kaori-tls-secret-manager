@@ -1827,10 +1827,7 @@ def crud_wizard(args, operation):
     options = ["--namespace", namespace, "--secret", name, "--workspace", workspace]
     cert = key = ca = None
     backup_identity = backup_recipient = None
-    if is_delete:
-        backup_identity, backup_recipient = local_recovery_identity()
-        ok("Encrypted backup recovery key is available.")
-    else:
+    if not is_delete:
         cert, key, ca = choose_certificate_inputs(args)
         options += ["--cert", cert, "--key", key]
         if ca:
@@ -1875,6 +1872,11 @@ def crud_wizard(args, operation):
     check(ask(f"Type {action} {exact_target} to confirm") == f"{action} {exact_target}",
           "Operation and target confirmation did not match")
     hint(f"Immutable Plan ID {planid} is bound and verified automatically.")
+    if is_delete:
+        # Only provision recovery once a delete is proven eligible and authorized;
+        # HOLD and plan-only checks must not create local keys or request setup.
+        backup_identity, backup_recipient = local_recovery_identity()
+        ok("Encrypted backup recovery key is available.")
 
     step(3, 3, "Execute once and verify Kubernetes response",
          "Encrypted recovery backup is validated BEFORE Delete; no automatic retry.")
