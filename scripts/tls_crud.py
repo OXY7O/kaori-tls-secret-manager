@@ -31,6 +31,15 @@ class Stop(Exception):
     """Fail closed; never render secret material in the exception message."""
 
 
+class DeleteHold(Stop):
+    """Read-only refusal with actionable, non-sensitive dependency evidence."""
+
+    def __init__(self, reason, details):
+        self.reason = reason
+        self.details = sorted(set(details))
+        super().__init__(f"Delete on HOLD: {reason}")
+
+
 def require(condition: bool, message: str):
     if not condition:
         raise Stop(message)
@@ -228,14 +237,44 @@ def assert_unmanaged(obj):
             "Managed Secret requires controller review")
 
 
-def dependency_evidence(context, namespace, name):
-    """Fail closed if Ingress, Pod, or available Gateway discovery is forbidden."""
+def owner_blockers(obj):
+    """Explain managed ownership without displaying any Secret payload."""
+    meta = obj.get("metadata") or {}
+    annotations = meta.get("annotations") or {}
+    labels = meta.get("labels") or {}
+    blocked = []
+    for ref in meta.get("ownerReferences") or []:
+        blocked.append("Controller owner: " + str(ref.get("kind") or "unknown")
+                       + "/" + str(ref.get("name") or "unknown"))
+    for entry in meta.get("finalizers") or []:
+        blocked.append("Finalizer: " + str(entry))
+    if annotations.get("cert-manager.io/certificate-name"):
+        blocked.append("cert-manager Certificate: "
+                       + str(annotations["cert-manager.io/certificate-name"]))
+    manager = labels.get("app.kubernetes.io/managed-by")
+    if manager and manager not in ("manual", "Manual"):
+        blocked.append("Managed by: " + str(manager))
+    return sorted(set(blocked))
+
+
+def dependency_evidence(context, namespace, name, *, detailed=False):
+    """Find Kubernetes Secret consumers; fail closed on incomplete API visibility."""
     ingress = kube_json(context, "-n", namespace, "get", "ingresses.networking.k8s.io", "-o", "json")
     pods = kube_json(context, "-n", namespace, "get", "pods", "-o", "json")
     blockers = []
+
+    def found(kind, item, generic):
+        if detailed:
+            meta = item.get("metadata") or {}
+            item_namespace = meta.get("namespace") or namespace
+            item_name = meta.get("name") or "(unknown)"
+            blockers.append(f"{kind}: {item_namespace}/{item_name}")
+        else:
+            blockers.append(generic)
+
     for item in ingress.get("items", []):
         if any(e.get("secretName") == name for e in item.get("spec", {}).get("tls", [])):
-            blockers.append("Ingress TLS reference")
+            found("Ingress TLS reference", item, "Ingress TLS reference")
     for pod in pods.get("items", []):
         spec = pod.get("spec", {})
         refs = [v.get("secret", {}).get("secretName") for v in spec.get("volumes", [])]
@@ -250,8 +289,8 @@ def dependency_evidence(context, namespace, name):
                 refs.extend(v.get("valueFrom", {}).get("secretKeyRef", {}).get("name")
                             for v in container.get("env", []))
         if name in refs:
-            blockers.append("Pod dependency")
-    # Discover optional API existence independently of access permission.
+            found("Pod dependency", pod, "Pod dependency")
+
     resources = kube(context, "api-resources", "--api-group=gateway.networking.k8s.io",
                      "-o", "name").decode("utf-8")
     if "gateways.gateway.networking.k8s.io" in resources.splitlines():
@@ -262,7 +301,7 @@ def dependency_evidence(context, namespace, name):
                     if (ref.get("name") == name and
                         (ref.get("namespace") or gw["metadata"]["namespace"]) == namespace and
                         ref.get("kind", "Secret") == "Secret"):
-                        blockers.append("Gateway TLS certificateRef")
+                        found("Gateway TLS certificateRef", gw, "Gateway TLS certificateRef")
     return sorted(set(blockers))
 
 
@@ -372,9 +411,18 @@ def plan_delete(args):
     obj = find_target(args.context, args.namespace, args.secret)
     require(obj is not None and obj.get("type") == TYPE,
             "Target TLS Secret absent or wrong type")
-    assert_unmanaged(obj)
-    blocked = dependency_evidence(args.context, args.namespace, args.secret)
-    require(not blocked, "Secret has references/dependencies; decommission blocked")
+    owners = owner_blockers(obj)
+    if owners:
+        raise DeleteHold("CONTROLLER_MANAGED", owners)
+    try:
+        blocked = dependency_evidence(args.context, args.namespace, args.secret,
+                                      detailed=True)
+    except Stop:
+        # Unknown status must NEVER be interpreted as free for deletion.
+        raise DeleteHold("DEPENDENCY_SCAN_INCOMPLETE",
+                         ["Cannot fully inspect cluster references with current RBAC/API access"])
+    if blocked:
+        raise DeleteHold("SECRET_IN_USE", blocked)
     meta = obj.get("metadata", {})
     uid, rv = meta.get("uid"), meta.get("resourceVersion")
     require(bool(uid and rv), "Secret UID or resourceVersion missing")
@@ -386,6 +434,18 @@ def plan_delete(args):
                                        "uid": uid, "resource_version": rv,
                                        "old_fingerprint": fp, "dependencies": "NONE_OBSERVED",
                                        "requires_external_owner_attestation": True})
+
+
+def save_delete_hold(args, hold):
+    """Save non-executable HOLD evidence, not a reusable deletion plan."""
+    root = private_workspace(args.workspace)
+    path = root / f"delete-hold-{datetime.now(UTC).strftime('%Y%m%dT%H%M%S%fZ')}-{uuid.uuid4().hex[:8]}.json"
+    atomic_json(path, {"status": "HOLD", "reason": hold.reason,
+                       "context": args.context, "namespace": args.namespace,
+                       "secret": args.secret, "observed_utc": datetime.now(UTC).isoformat(),
+                       "blockers": hold.details,
+                       "note": "No deletion plan created. Re-run checks after resolving blockers."})
+    return path
 
 
 def validate_approval(args, plan):
@@ -647,7 +707,15 @@ def main(argv=None):
             print(json.dumps({"plan": str(path), "plan_id": plan["plan_id"],
                               "action": plan["action"]}, indent=2))
         elif args.command == "plan-delete":
-            path, plan = plan_delete(args)
+            try:
+                path, plan = plan_delete(args)
+            except DeleteHold as hold:
+                evidence = save_delete_hold(args, hold)
+                print(json.dumps({"status": "HOLD", "action": "DELETE",
+                                  "target": f"{args.namespace}/{args.secret}",
+                                  "reason": hold.reason, "blockers": hold.details,
+                                  "evidence": str(evidence)}, indent=2))
+                return 0
             print(json.dumps({"plan": str(path), "plan_id": plan["plan_id"],
                               "action": plan["action"]}, indent=2))
         else:
