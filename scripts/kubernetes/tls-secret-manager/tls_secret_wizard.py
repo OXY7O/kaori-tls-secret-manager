@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Interactive, fail-closed Kubernetes TLS Secret renewal operator wizard."""
 import argparse
+import base64
 import csv
 from datetime import datetime, timezone, timedelta
 import json
@@ -19,6 +20,7 @@ from tls_secret_manager import (
 
 HERE = Path(__file__).resolve().parent
 WRAPPER = HERE / "tls-secret-manager.sh"
+BRAND_LOGO_FILE = HERE.parents[2] / "assets" / "kaori-logo.png"
 
 
 # ANSI is enabled only on an interactive color-capable terminal. Text labels
@@ -126,26 +128,54 @@ def header(title):
 
 
 
+def _terminal_inline_png():
+    """Display the distributed PNG only where an image protocol is confirmed.
+
+    iTerm2 supports the OSC 1337 inline-image sequence. Other terminals get a
+    compact representation of the same shield-K mark, not raw escape payloads.
+    """
+    if (not USE_COLOR or not sys.stdout.isatty()
+            or os.environ.get("TERM_PROGRAM") != "iTerm.app"
+            or os.environ.get("KAORI_NO_IMAGE") == "1"):
+        return False
+    try:
+        data = BRAND_LOGO_FILE.read_bytes()
+    except OSError:
+        return False
+    if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > 256_000:
+        return False
+    encoded = base64.b64encode(data).decode("ascii")
+    print("\033]1337;File=inline=1;width=66;preserveAspectRatio=1:"
+          + encoded + "\a")
+    return True
+
+
 def brand_banner():
-    """Render a real ASCII-art KAORI wordmark directly in the operator terminal."""
-    wordmark = (
-        " _  __    _    ___  ____  ___ ",
-        "| |/ /   / \\  / _ \\|  _ \\|_ _|",
-        "| ' /   / _ \\| | | | |_) || | ",
-        "| . \\  / ___ \\ |_| |  _ < | | ",
-        "|_|\\_\\/_/   \\_\\___/|_| \\_\\___|",
-    )
+    """Render the KAORI shield-K identity with a PNG-capable TTY fallback."""
     width = shutil.get_terminal_size(fallback=(80, 24)).columns
     print()
-    if width >= 40:
-        for line in wordmark:
+    if _terminal_inline_png():
+        return
+    # Terminal rendition of assets/kaori-mark.png. No image viewer required.
+    if width >= 43:
+        shield = (
+            "    .-----------.",
+            "   /   _  __    \\",
+            "  |   | |/ /     |",
+            "  |   | ' /      |",
+            "  |   | . \\      |",
+            "  |   |_|\\_\\     |",
+            "   \\             /",
+            "    '-----------'",
+        )
+        for line in shield:
             print("  " + paint(line, 36))
     else:
-        print("  " + paint(">> KAORI OPS <<", 36))
-    print("  " + paint("TLS SECRET MANAGER", 1))
-    print("  " + paint(("-" if not USE_ICONS else "─") *
-                       max(16, min(44, width - 4)), 36))
-
+        print("  " + paint("[K]", 36))
+    print("  " + paint("KAORI TLS", 1))
+    print("  " + paint("CERTIFICATE MANAGER", 1))
+    print("  " + paint(("-" if not USE_ICONS else "─")
+                       * max(12, min(44, width - 4)), 36))
 
 def menu_entry(number, title, *, default=False, caution=False):
     """Color is supplementary: cyan inventory, yellow renewal, plain white otherwise."""
