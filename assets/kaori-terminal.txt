@@ -1,0 +1,8 @@
+KAORI TLS CERTIFICATE MANAGER
+  +-------------------+
+  |     /-------\     |
+  |    /  K   /  \    |  Inspect  |  Validate  |  Renew
+  |    \    /    /    |  Create   |  HOLD      |  Delete
+  |     \_______/     |
+  +-------------------+
+Terminal-safe concept only. Future CLI branding integration must preserve --plain and NO_COLOR.
