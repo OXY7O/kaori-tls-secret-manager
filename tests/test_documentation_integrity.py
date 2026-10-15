@@ -51,7 +51,10 @@ class DocumentationIntegrityTests(unittest.TestCase):
 
     def test_published_release_is_default_in_user_guides(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("v0.1.0", readme)
+        current_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        self.assertRegex(current_version, r"^\d+\.\d+\.\d+$")
+        self.assertIn(f"v{current_version}", readme)
+        self.assertIn(f"docs/releases/v{current_version}.md", readme)
         self.assertIn("docs/INSTALLATION.md", readme)
         self.assertIn("Quality Gate", readme)
         self.assertNotIn("development preview", readme.lower())

@@ -89,5 +89,5 @@ jobs:
           gh release create "${TAG}" \
             "dist/kaori-tls-management-${TAG}.tar.gz" dist/SHA256SUMS \
             --target "${GITHUB_SHA}" \
-            --title "KAORI TLS Management ${TAG} — First Public Source Release" \
+            --title "KAORI TLS Management ${TAG}" \
             --notes-file "docs/releases/${TAG}.md"
