@@ -15,6 +15,7 @@ mkdir -p ~/workspace
 cd ~/workspace
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
+git checkout v0.1.0  # pin the first public source release
 ```
 
 A later update from the default branch is `git pull --ff-only origin main`. For reproducible testing, check out a versioned release tag when available.
@@ -96,7 +97,7 @@ git pull --ff-only origin main
 python3 -m unittest discover -s tests -v
 ```
 
-Community prerelease source is published from `main`; **production acceptance remains pending** independent security review, Kubernetes DEV/UAT, real encrypted restore and owner sign-off. Offline PASS is not production authorization.
+Versioned public source is published from `main` as **v0.1.0**; **production acceptance remains pending** independent security review, Kubernetes DEV/UAT, real encrypted restore and owner sign-off. Offline PASS is not production authorization.
 
 ## Simplified local Create/Delete workflow
 

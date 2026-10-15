@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Offline CI" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <a href="#release-status-and-compatibility"><img alt="Preview" src="https://img.shields.io/badge/release-development%20preview-orange"></a>
+  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0"><img alt="Release v0.1.0" src="https://img.shields.io/badge/release-v0.1.0-blue"></a>
 </p>
 
 <p align="center">
@@ -62,6 +62,7 @@ sudo apt install -y git python3 openssl age ca-certificates
 
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
+git checkout v0.1.0  # immutable first release; use main for ongoing development
 
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
@@ -138,14 +139,14 @@ See the [security policy](SECURITY.md) and [architecture](docs/ARCHITECTURE.md).
 
 ## Release status and compatibility
 
-**Version:** `0.1.0-rc.1` — **community prerelease (not production-approved)**. Use the source from the repository's **default `main` branch** or an immutable [GitHub prerelease](https://github.com/OXY7O/kaori-tls-secret-manager/releases) archive after publication. You do **not** need a separate development branch, second repository, or Python package installation.
+**Version:** `v0.1.0` — **first public Semantic Versioning source release**. Use the immutable [GitHub Release](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0) tag to reproduce an installation, or `main` for the latest source. This is a **0.x initial-development release**, not a declaration of production readiness, stable APIs, or a security support SLA. A second repository and a pip package are not required.
 
 - **Validated in CI:** Python 3.12 on Ubuntu Linux; shell/Python syntax, offline regression, read-only launcher smoke checks and no-cluster-access assertion.
 - **Expected runtime:** Python 3.10+, Bash, `kubectl`, OpenSSL and `age` on Linux/WSL; exact Kubernetes/kubectl combinations are not yet independently certified.
 - **Not provided:** self-contained binaries, Docker images, Homebrew packages, ACME issuance, continuous reconciliation controller, or unattended destructive operations.
 - **Acceptance boundary:** CI passing is **not** evidence of live-cluster DEV/UAT, endpoint health, verified backup restoration, signed production approval or a production security support SLA.
 
-Review [release notes](docs/releases/v0.1.0-rc.1.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and the [production acceptance checklist](docs/RELEASE-CHECKLIST.md). Always use an approved test context before any Kubernetes mutation.
+Review [release notes](docs/releases/v0.1.0.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and the [production acceptance checklist](docs/RELEASE-CHECKLIST.md). Always use an approved test context before any Kubernetes mutation.
 
 ## Documentation & community
 
