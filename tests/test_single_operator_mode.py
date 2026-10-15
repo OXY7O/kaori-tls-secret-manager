@@ -60,7 +60,8 @@ class SingleOperatorModeTests(unittest.TestCase):
 
     def test_operator_mode_rejects_unrecoverable_backup_before_delete(self):
         with tempfile.TemporaryDirectory() as folder:
-            path, plan = crud.write_plan(folder, {**PLAN, "uid": "uid-1",
+            draft = {k: v for k, v in PLAN.items() if k != "plan_id"}
+            path, plan = crud.write_plan(folder, {**draft, "uid": "uid-1",
                                                  "resource_version": "10",
                                                  "old_fingerprint": "synthetic"})
             recover = Path(folder) / "recovery.agekey"
@@ -71,9 +72,9 @@ class SingleOperatorModeTests(unittest.TestCase):
             def backup(src, dest, recipient):
                 dest.write_bytes(b"ENCRYPTED-SYNTHETIC")
                 return dest
-            args = cli_args(plan=str(path), namespace="sandbox",
-                            context="test-context", secret="unused-tls",
-                            backup_recipient="age1example",
+            args = cli_args(plan=str(path), approve=plan["plan_id"],
+                            namespace="sandbox", context="test-context",
+                            secret="unused-tls", backup_recipient="age1example",
                             backup_identity=str(recover))
             with patch.object(crud.sys.stdin, "isatty", return_value=True), \
                  patch.object(crud, "ensure_same_target", return_value=original), \
