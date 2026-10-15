@@ -94,7 +94,8 @@ def validate_stored_tls(obj, warn_days=30, now=None, ca_bundle=None):
                 with tempfile.TemporaryDirectory() as tmp:
                     leaf_parts = pem_leaves(leaf)
                     path = Path(tmp) / "leaf.pem"
-                    path.write_bytes(leaf_parts[0])
+                    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as stream:
+                        stream.write(leaf_parts[0])
                     command = ["openssl", "verify", "-CAfile", str(ca_bundle)]
                     if len(leaf_parts) > 1:
                         intermediate = Path(tmp) / "untrusted-chain.pem"
