@@ -1,6 +1,7 @@
 name: KAORI Reviewed CodeQL Triage (One Time)
 
 # Only the reviewed change to this workflow triggers the single execution.
+# A single status-only retry diagnoses a blocked Code Scanning PATCH.
 # Remove this workflow after the audited disposition results are verified.
 on:
   push:

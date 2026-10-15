@@ -114,6 +114,11 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except urllib.error.HTTPError as exc:
+        # Do not print URL, headers, response body or token.
+        print("REVIEWED_DISPOSITION_STOPPED: HTTP " + str(exc.code),
+              file=sys.stderr)
+        raise SystemExit(1)
     except (ValueError, urllib.error.URLError, OSError) as exc:
         print("REVIEWED_DISPOSITION_STOPPED: " + type(exc).__name__,
               file=sys.stderr)
