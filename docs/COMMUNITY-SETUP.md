@@ -9,7 +9,7 @@ Repository documents and templates live in Git. Some repository-wide GitHub sett
 
 **Suggested GitHub Topics:** `kubernetes`, `tls`, `certificates`, `cli`, `python`, `devops`, `sre`, `security`, `certificate-management`, `kubernetes-secrets`, `open-source`.
 
-**Project identity:** KAORI TLS Certificate Manager. The GitHub repository remains **kaori-tls-secret-manager** for continuity; no name change is required to show the product name in README. Use **assets/kaori-mark.png** for project mark and **assets/kaori-logo.png** for the full wordmark.
+**Project identity:** KAORI TLS Management. The GitHub repository remains **kaori-tls-secret-manager** for continuity; no name change is required to show the product name in README. Use **assets/kaori-mark.png** for project mark and **assets/kaori-logo.png** for the full wordmark.
 
 ## Recommended issue labels
 
@@ -33,7 +33,7 @@ Labels are **recommendations**; adding this file does not create labels in the G
 - Set branch protections/rulesets so a maintainer review and relevant offline CI checks are required before merging to the future stable branch.
 - Keep Actions permissions minimally scoped; do not add production kubeconfigs or recovery keys as CI secrets.
 - Decide whether GitHub Discussions should be enabled for community questions; otherwise route sanitized support issues through existing templates.
-- Confirm the initial release version, source archive integrity, supported environments and release note checks with [release checklist](RELEASE-CHECKLIST.md) before promoting from development preview.
+- Confirm the initial release version, source archive integrity, supported environments and release note checks with [release checklist](RELEASE-CHECKLIST.md) before promoting from community prerelease to stable production support.
 
 ## Community documentation already in the tree
 
