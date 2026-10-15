@@ -58,3 +58,22 @@ jobs:
           path: codeql-sarif/
           if-no-files-found: error
           retention-days: 14
+
+  open_alert_inventory:
+    name: CodeQL Alert Inventory
+    if: github.event_name != 'pull_request'
+    needs: analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      security-events: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Inventory live open alerts (metadata only)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci/code_scanning_alerts.py
