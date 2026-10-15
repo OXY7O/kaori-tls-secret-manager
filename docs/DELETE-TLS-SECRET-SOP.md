@@ -2,7 +2,7 @@
 
 **Audience:** one authorized operator using the original KAORI interactive terminal menu.
 
-**Status:** development / DEV-UAT trial. This guide does not authorize deleting production workloads. There are no external approval JSON files, signature files, trusted approver key installation, or separate role handoffs in the **interactive single-operator workflow**.
+**Safety:** This guide requires an explicitly approved Kubernetes environment. The availability of this workflow does not authorize production deletion. There are no external approval JSON files, signature files, trusted approver key installation, or separate role handoffs in the **interactive single-operator workflow**.
 
 ## One-time setup
 
