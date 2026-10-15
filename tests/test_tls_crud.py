@@ -77,6 +77,16 @@ class CrudSafetyTests(unittest.TestCase):
             blockers = m.dependency_evidence("sandbox", "demo", "demo-tls")
         self.assertEqual(blockers, ["Gateway TLS certificateRef", "Ingress TLS reference", "Pod dependency"])
 
+    def test_gateway_discovery_does_not_accept_similar_resource_names(self):
+        # A similarly named CRD must never be treated as the Gateway API.
+        ing = {"items": []}
+        pods = {"items": []}
+        similar = b"malicious-gateways.gateway.networking.k8s.io\\n"
+        with patch.object(m, "kube_json", side_effect=[ing, pods]) as read, \\
+             patch.object(m, "kube", return_value=similar):
+            self.assertEqual(m.dependency_evidence("sandbox", "demo", "demo-tls"), [])
+        self.assertEqual(read.call_count, 2)
+
     def test_detailed_dependency_evidence_identifies_exact_consumers(self):
         ingress = {"items": [{"metadata": {"name": "web", "namespace": "demo"},
                               "spec": {"tls": [{"secretName": "demo-tls"}]}}]}
