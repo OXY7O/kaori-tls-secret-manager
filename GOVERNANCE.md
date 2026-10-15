@@ -18,6 +18,6 @@ Maintainers retain final discretion over merges, security disclosure coordinatio
 
 ## Release lifecycle
 
-The application currently has an **unreleased development snapshot**. Public tags should follow semantic versioning once the initial version is accepted; changelog entries move from Unreleased into an immutable dated release entry. No branch or green CI badge alone is proof of real Kubernetes UAT or a production-approved release.
+The application publishes a **community prerelease (`v0.1.0-rc.1`)**, gated on offline checks on `main`. Release tags follow semantic versioning and dated changelog entries are immutable. Prerelease publication is **not** real Kubernetes DEV/UAT acceptance or production authorization.
 
 Compatibility-breaking CLI/menu/output changes require explicit rationale, documentation and regression testing. Production-impacting changes must be validated in an approved isolated environment before a maintainer can claim production readiness.
