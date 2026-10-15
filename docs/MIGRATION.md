@@ -1,21 +1,20 @@
-# Private-to-public migration plan
+# Historical migration record
 
-**Status: original source and regression tests migrated into the public development branch; local/offline checks PASS. The branch is Draft and still lacks real Kubernetes DEV/UAT acceptance and a stable release.** The private historical Issue #67 / PR #68 remain closed-unmerged and preserved. The private runbook main catalog points here.
+KAORI TLS Management source and synthetic offline regression tests were transferred from the private operations repository into the independent public repository **without migrating private Git history**. The unified utility now lives on [`main`](https://github.com/OXY7O/kaori-tls-secret-manager/tree/main).
 
-1. Review each source file and fixture; sanitize environment-specific hostnames, namespaces, internal deployment assumptions, network addresses, credentials, company identifiers, and paths. Preserve **no private Git history**.
-2. Transfer only reviewed standalone code and synthetic tests: the former Python launcher, renewal engine, inventory, operations diagnostics, wizard and tests; normalize imports and paths to the public layout.
-3. Integrate the locally tested CRUD prototype (Create, metadata-only Read, same-SAN Update, governed Delete) after threat modeling and code review. Add operator-friendly menus without creating any unsafe default action.
-4. Add all missing negative scenarios; run offline tests on GitHub Actions with no Kubernetes credentials; review software supply chain and publish versioned checksums.
-5. Run real DEV/UAT signed approval and rollback/restore drills with a human operator, collecting private evidence outside public Git.
-6. Publish a signed/tagged, versioned release only after passing acceptance.
-7. The existing private repository has already merged a **handoff pointer** into its Kubernetes catalog. **Only after public release acceptance** may that pointer become pinned version/checksum installation instructions; keep the historical, unmerged implementation available through its archived PR.
+## Completed source publication
 
-Tracking in the public project: migration #1, Create #2, Delete #3, architecture Draft PR #4, and Read/Update #5. The legacy private issue/PR are closed as transferred; the private documentation handoff has been merged.
+- Original renewal engine, terminal wizard, inventory, TLS Toolbox/Doctor, examples and regression tests transferred to `scripts/kubernetes/tls-secret-manager/` and `tests/`.
+- Guarded Create, metadata-only Read, single-target same-SAN Update and dependency-aware Delete implemented in `scripts/tls_crud.py`.
+- One supported launcher: `scripts/tls-secret-manager.sh`. The two-checkout bridge was removed.
+- Public GitHub Actions runs offline tests **without Kubernetes credentials**.
+- Approved PNG identity, complete operator docs, contribution files and public-source [prerelease `v0.1.0-rc.1`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0-rc.1) published after passing the offline gate.
+- Original work delivered by merged [PR #4](https://github.com/OXY7O/kaori-tls-secret-manager/pull/4) and [PR #6](https://github.com/OXY7O/kaori-tls-secret-manager/pull/6). Previous implementation issues #1, #2, #3 and #5 are closed with implementation/acceptance boundaries documented.
 
-## Actual completed source transfer
+## Production handoff is a separate acceptance decision
 
-- Original modules: `scripts/kubernetes/tls-secret-manager/{tls_secret_manager.py,tls_secret_wizard.py,tls_inventory.py,tls_ops.py,tls-secret-manager.sh}`.
-- Original example files and all 11 historical regression test files, with environment-specific fixture identifiers replaced by synthetic `example.test` values.
-- Original menu/ASCII branding retained. Wizard now offers 10 Create and 11 Delete; both call the guarded CRUD engine, not a second UI.
-- Root entrypoint: `scripts/tls-secret-manager.sh`. The former private-checkout bridge is removed. Only one clone is needed.
-- Offline CI covers original regression suite and standalone CRUD tests. **Real Kubernetes acceptance, security review, recovery exercises and versioned release still pending.**
+**The community prerelease is not production-authorized.** The following have not been independently signed off: public-source security/privacy review, real Kubernetes DEV/UAT exercises, live RBAC and API race conditions, TLS endpoint trust and external dependency validation, encrypted backup restoration, and owner/operations acceptance.
+
+The current project status and unfulfilled production gates are maintained in [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md), not as a migration TODO in the homepage README.
+
+The previous private ops-runbook handoff pointer is historical. Version pinning and operational cutover in private runbooks must be handled under their own approved change processes and must not imply this community prerelease is production-ready.
