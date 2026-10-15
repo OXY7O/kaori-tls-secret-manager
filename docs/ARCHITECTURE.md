@@ -1,6 +1,6 @@
 # Architecture Decision: Standalone TLS Secret Manager
 
-Status: **Accepted direction; implementation pending migration gates**  
+Status: **Original wizard, renewal modules and CRUD extension ported; DEV/UAT and release pending**  
 Scope: Kubernetes `kubernetes.io/tls` Secrets  
 Distribution target: public repository, versioned CLI releases  
 Operational documentation source: `OXY7O/ops-runbooks` (private)
@@ -51,36 +51,33 @@ Operational documentation source: `OXY7O/ops-runbooks` (private)
 - Verify target absence and that application dependencies/other Secrets were unaffected. Store immutable disposition as complete, stopped, or uncertain; no unverified success.
 - Initial release: one target per deletion. Bulk deletion, force, garbage collection or Secret ownership bypass are out of scope.
 
-## 4. Proposed public repository layout
+## 4. Public development repository layout
 
 ```text
 scripts/
-  tls-secret-manager.sh
-  tls_secret_manager.py
-  tls_secret_wizard.py
-  tls_inventory.py
-  tls_ops.py
-tests/
-  test_tls_*.py
-docs/
-  ARCHITECTURE.md
-  SECURITY.md                 (planned)
-  OPERATOR_GUIDE.md           (planned)
-examples/                     synthetic only
-.github/workflows/
-  validate.yml                (planned)
+  tls-secret-manager.sh            # Default launcher, original KAORI UI
+  tls_crud.py                     # Guarded CRUD backend
+  kubernetes/tls-secret-manager/
+    tls_secret_manager.py         # Original renewal engine
+    tls_secret_wizard.py          # Original wizard + Create/Delete
+    tls_inventory.py
+    tls_ops.py
+    examples/                     # Synthetic sample CSV files
+tests/                            # Original + CRUD + integrated launcher tests
+docs/                             # Architecture, security, operator/laptop guides
+.github/workflows/ci.yml          # Offline regression
 ```
 
 The existing launcher and Python stdlib implementation form the compatibility baseline. Public code must not hardcode organization-specific names, kube contexts, production endpoints, CA paths, private network addresses or credentials.
 
 ## 5. Migration and acceptance gates
 
-- **Gate A — Public content review:** enumerate source/tests/example fixtures and scrub company identifiers, internal domains, cluster names, file paths, secret payloads and personal/production evidence. Git history from the private repository is **not copied** into the public repository.
-- **Gate B — Functional preservation:** migrate audited implementation and all applicable synthetic regression tests. Preserve existing renewal, journal, backup, verification, selective rollback, and text/ANSI CLI behavior.
-- **Gate C — CRUD extension:** implement create and guarded delete with negative paths: already exists; wrong key; issuer/SAN mismatch; controller-owned target; active reference; RBAC incomplete; approval missing; stale UID/RV; failed backup; API timeout; uncertain deletion result.
-- **Gate D — CI and packaging:** Python compilation, offline tests, contract/security checks, documentation link tests, reproducible versioned release, checksum/integrity verification and usage docs; no real-cluster writes in CI.
+- **Gate A — Public content review (file migration and synthetic fixture replacement complete; independent security review pending):** enumerate source/tests/example fixtures and scrub company identifiers, internal domains, cluster names, file paths, secret payloads and personal/production evidence. Git history from the private repository is **not copied** into the public repository.
+- **Gate B — Functional preservation (ported and offline regression PASS; DEV/UAT pending):** migrate audited implementation and all applicable synthetic regression tests. Preserve existing renewal, journal, backup, verification, selective rollback, and text/ANSI CLI behavior.
+- **Gate C — CRUD extension (wizard Create/Delete implemented; offline coverage present, DEV/UAT pending):** implement create and guarded delete with negative paths: already exists; wrong key; issuer/SAN mismatch; controller-owned target; active reference; RBAC incomplete; approval missing; stale UID/RV; failed backup; API timeout; uncertain deletion result.
+- **Gate D — CI and packaging (offline CI PASS; release/checksum and security scans pending):** Python compilation, offline tests, contract/security checks, documentation link tests, reproducible versioned release, checksum/integrity verification and usage docs; no real-cluster writes in CI.
 - **Gate E — DEV/UAT:** real-cluster permission-scoped tests, negative cases, audit evidence, operator sign-off. No claimed PASS before evidence.
-- **Gate F — Cutover:** move operator download/install steps in ops-runbooks to a pinned release. Remove duplicated source only after functional equivalence and migration acceptance. Close the old Draft PR/issue according to actual completion, never by assuming it merged.
+- **Gate F — Cutover (partial):** private ops-runbooks main now links to this public source; the historical Issue #67 and PR #68 are closed-unmerged as transferred. Pin a tested version/checksum in the runbook **only after** UAT and release acceptance.
 
 ## 6. Changes not authorized by this decision
 
