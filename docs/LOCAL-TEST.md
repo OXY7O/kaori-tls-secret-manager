@@ -87,7 +87,7 @@ bash scripts/tls-secret-manager.sh crud --context APPROVED_DEV_CONTEXT plan-dele
   --workspace "$HOME/k8s-tls-private"
 ```
 
-`plan-delete` is **not** safe to assume PASS: known references, controllers, incomplete dependency visibility, and missing RBAC must STOP. No `create` / `delete` execution should be attempted until signature/trust-anchor verification, recovery and change acceptance are independently approved in DEV/UAT.
+`plan-delete` is **not** safe to assume PASS: known references, controllers, incomplete dependency visibility, and missing RBAC must STOP. For the interactive one-person Create/Delete trial, operator confirmations replace external signature files. Do not execute a real mutation until the approved DEV/UAT target is checked and—before Delete—encrypted recovery is ready. The optional non-interactive signed workflow retains stricter external signature/trust-anchor requirements.
 
 ## Operational update
 
@@ -99,3 +99,7 @@ python3 -m unittest discover -s tests -v
 ```
 
 The code remains on a Draft PR until security, end-to-end DEV/UAT and operator sign-off are complete.
+
+## Simplified local Create/Delete workflow
+
+Start the original menu with `bash scripts/tls-secret-manager.sh wizard`, select 10 (Create) or 11 (Delete), follow the on-screen context/namespace/Secret prompts, and review the read-only plan. Press Enter to keep a plan only, or type PROCEED to enter the guided confirmation phase. Delete auto-reuses or offers to generate a protected age recovery identity, then requires UNUSED, the exact DELETE namespace/secret phrase and Plan ID. Before deletion the original Secret is encrypted and the backup is verified by decrypting it locally. The optional signed CLI flow is not needed for single-operator interactive usage. See [DELETE-TLS-SECRET-SOP.md](DELETE-TLS-SECRET-SOP.md).
