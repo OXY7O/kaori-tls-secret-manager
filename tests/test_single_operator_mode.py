@@ -124,6 +124,34 @@ class SingleOperatorModeTests(unittest.TestCase):
         self.assertEqual(cmd.call_count, 1)
         self.assertEqual(cmd.call_args.args[1], "plan-delete")
 
+    def test_delete_guided_flow_uses_single_operator_without_signatures(self):
+        args = types.SimpleNamespace(context=None)
+        answers = iter(["unused-tls", "", "PROCEED", "UNUSED",
+                        "DELETE sandbox/unused-tls", "plan123"])
+        with patch.object(wizard, "exec_read", side_effect=[
+            "dev-context\n", '{"items":[{"metadata":{"name":"sandbox"}}]}']), \
+             patch.object(wizard, "choose", side_effect=["dev-context", "sandbox"]), \
+             patch.object(wizard, "ask", side_effect=lambda *a, **kw: next(answers)), \
+             patch.object(wizard, "local_recovery_identity",
+                          return_value=(Path("/private/recovery.agekey"), "age1" + "x"*45)), \
+             patch.object(wizard, "crud_command", side_effect=[
+                 {"plan": "/tmp/delete-plan.json", "plan_id": "plan123"},
+                 {"status": "COMPLETE_ABSENCE_VERIFIED",
+                  "journal": "/tmp/delete-journal.json"}]) as cmd, \
+             redirect_stdout(StringIO()):
+            wizard.crud_wizard(args, "delete")
+        self.assertEqual(cmd.call_count, 2)
+        a = [str(v) for v in cmd.call_args.args]
+        self.assertEqual(a[1], "delete")
+        self.assertIn("--operator-mode", a)
+        self.assertIn("--operator-attested", a)
+        self.assertIn("DELETE sandbox/unused-tls", a)
+        self.assertIn("--backup-identity", a)
+        self.assertIn("/private/recovery.agekey", a)
+        self.assertNotIn("--approval-record", a)
+        self.assertNotIn("--approval-signature", a)
+        self.assertNotIn("--approval-trust-key", a)
+
     def test_delete_wizard_requires_unused_attestation_before_write(self):
         args = types.SimpleNamespace(context=None)
         with patch.object(wizard, "exec_read", side_effect=[
