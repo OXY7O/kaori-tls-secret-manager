@@ -17,8 +17,6 @@ Supported test workstation: Linux or WSL, Python 3.10+, Bash, Git, OpenSSL and a
 ~~~bash
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
-git fetch origin
-git switch --track origin/feat/crud-and-repo-migration
 
 python3 -m unittest discover -s tests -v
 bash -n scripts/tls-secret-manager.sh scripts/kaori-tls-secret-manager.sh \
@@ -32,7 +30,7 @@ bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh crud --help
 ~~~
 
-**Note:** the initial public release is not merged to main yet; the branch above contains the application and test suite. Do not create or use production credentials for local tests.
+**Note:** use the default `main` branch for contributions. The `0.1.0-rc.1` prerelease is intended for evaluation only; do not create or use production credentials for local tests.
 
 ## Pull request requirements
 
