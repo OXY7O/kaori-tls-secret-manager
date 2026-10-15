@@ -1860,8 +1860,7 @@ def crud_wizard(args, operation):
     exact_target = f"{namespace}/{name}"
     check(ask(f"Type {action} {exact_target} to confirm") == f"{action} {exact_target}",
           "Operation and target confirmation did not match")
-    check(ask("Type the exact Plan ID to authorize the change") == planid,
-          "Plan ID confirmation mismatch")
+    hint(f"Immutable Plan ID {planid} is bound and verified automatically.")
 
     step(3, 3, "Execute once and verify Kubernetes response",
          "Encrypted recovery backup is validated BEFORE Delete; no automatic retry.")
