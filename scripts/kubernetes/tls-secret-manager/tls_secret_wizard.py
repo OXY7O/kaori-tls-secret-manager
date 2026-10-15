@@ -1082,7 +1082,7 @@ def explain_plan(plan, plan_dir):
         print(f"  {paint(state.ljust(7), color)}  {ns}/{name}")
         print(f"           {entry['message']}")
         if c.get("flags"):
-            print(f"           Catatan: {', '.join(c['flags'])}")
+            print(f"           Notes: {', '.join(c['flags'])}")
     file_hint("Target summary", plan_dir / "renewal-plan.csv")
     file_hint("Certificate comparison", plan_dir / "certificate-comparison.csv")
     file_hint("Held targets", plan_dir / "held-targets.csv")
@@ -1108,7 +1108,7 @@ def show_run_status(plan_file):
     if journal.is_file():
         data = json.loads(journal.read_text(encoding="utf-8"))
         current = data.get("status", "UNKNOWN")
-        print("Status eksekusi:", current)
+        print("Execution status:", current)
         for item in data.get("items", []):
             print(f"  {item['namespace']}/{item['secret_name']} -> {item['status']}")
         status_help(current, folder)
@@ -1493,7 +1493,7 @@ def toolkit_menu(args):
                           f"certificate_variants={group['fingerprint_variants']}")
                 saved = tls_ops.atomic_evidence(report_root, "families",
                     {"context": context, "families": family})
-                file_hint("Detail keluarga certificate", saved)
+                file_hint("Certificate family details", saved)
                 hint("Matching SANs do not prove common ownership/issuance. Review mixed fingerprints.")
             elif choice in ("3", "4"):
                 selected = choose("Select TLS Secret", [
