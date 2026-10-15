@@ -8,8 +8,8 @@ The project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ### Added
 
-- Original KAORI guided terminal wizard with menus 1–9, TLS Inventory, Expiry Audit, Toolbox, renewal, HOLD review, run history and HTTPS verification.
-- Integrated **Create TLS Secret** (menu 10) and **Delete TLS Secret** (menu 11) in the same operator interface.
+- Original KAORI guided terminal wizard with inventory, reporting and diagnostics, TLS Inventory, Expiry Audit, Toolbox, renewal, HOLD review, run history and HTTPS verification.
+- Integrated **Create TLS Secret** and **Delete TLS Secret** in the same operator interface.
 - Guarded single-target CRUD engine for inventory, inspect, plan-create/create, plan-update/update and plan-delete/delete.
 - Read-only dependency discovery for Delete covering Ingress TLS references, Pods, Gateway API references and controller ownership; incomplete visibility and referenced targets return HOLD.
 - Single-operator prompted confirmations, an optional independent signed-approval flow, age-encrypted recovery for destructive operations and write journals.
