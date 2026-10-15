@@ -1514,7 +1514,17 @@ def choose_previous_plan(args, held_only=False, purpose="history"):
         path = Path(answer).expanduser()
         if path.is_file() and path.name == "renewal-plan.json":
             return str(path.resolve())
-        warning("Run not found. Enter a valid path or press Enter to return.")
+        if path.name == "results.json":
+            warning("results.json is a diagnostic report, not a renewal-plan.json.")
+            if purpose == "reverify":
+                hint("TLS Doctor evidence cannot replace a saved renewal plan and journal.")
+                hint("For a new HTTPS check use Main menu 3 > TLS Toolbox > 4. TLS Doctor.")
+        else:
+            warning("No valid renewal-plan.json found at that location.")
+        if not candidates:
+            hint("No saved runs are available here. Returning to the main menu.")
+            return None
+        hint("Select a listed run, enter a valid renewal-plan.json path, or press Enter to return.")
 
 
 def toolkit_menu(args):
