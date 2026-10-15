@@ -1,0 +1,15 @@
+# Keep GitHub Actions used by KAORI up to date through reviewed pull requests.
+# Security updates remain enabled separately in repository security settings.
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps"
