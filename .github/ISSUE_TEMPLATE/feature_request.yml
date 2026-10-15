@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest an improvement to the CLI or project workflow
+title: "feat: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the operator problem first. For mutation changes, describe authorization, STOP/HOLD handling, dependency checks, recovery and testing. Avoid real infrastructure data.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed user experience
+      description: Command or wizard behavior, including examples with synthetic data
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and trade-offs
+  - type: textarea
+    id: risk
+    attributes:
+      label: Operational and security considerations
+      description: Scope, RBAC, fail-closed controls, backup and rollback implications

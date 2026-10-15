@@ -1,0 +1,87 @@
+name: Offline Security and Full KAORI Regression
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile all CLI modules
+        run: |
+          python3 -m py_compile scripts/tls_crud.py \
+            scripts/kubernetes/tls-secret-manager/tls_secret_manager.py \
+            scripts/kubernetes/tls-secret-manager/tls_secret_wizard.py \
+            scripts/kubernetes/tls-secret-manager/tls_inventory.py \
+            scripts/kubernetes/tls-secret-manager/tls_ops.py
+          bash -n scripts/tls-secret-manager.sh scripts/kaori-tls-secret-manager.sh \
+            scripts/kubernetes/tls-secret-manager/tls-secret-manager.sh
+      - name: Complete offline regressions (historical plus CRUD)
+        run: python3 -m unittest discover -s tests -v
+      - name: Test entrypoints offline
+        run: |
+          bash scripts/tls-secret-manager.sh doctor
+          bash scripts/tls-secret-manager.sh --help
+          bash scripts/tls-secret-manager.sh crud --help
+          bash scripts/tls-secret-manager.sh wizard --help
+      - name: No cluster access in CI
+        run: |
+          test -z "${KUBECONFIG:-}"
+          echo 'No real cluster or Secret write permitted in CI.'
+  publish_preview:
+    name: Publish immutable source prerelease
+    needs: offline
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    concurrency:
+      group: kaori-community-preview-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Validate prerelease manifest and build source artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n '1p' VERSION)"
+          test "${VERSION}" = "0.1.0-rc.1"
+          test -f docs/releases/v0.1.0-rc.1.md
+          test -f assets/kaori-logo.png
+          test -f assets/kaori-mark.png
+          test "${GITHUB_REF}" = "refs/heads/main"
+          mkdir -p dist
+          ARCHIVE="kaori-tls-management-v${VERSION}.tar.gz"
+          git archive --format=tar.gz --prefix="kaori-tls-management-v${VERSION}/" \
+            --output="dist/${ARCHIVE}" HEAD
+          tar -tzf "dist/${ARCHIVE}" >/dev/null
+          ( cd dist && sha256sum "${ARCHIVE}" > SHA256SUMS )
+      - name: Create community prerelease after successful offline gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="v$(sed -n '1p' VERSION)"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Prerelease ${TAG} already exists; do not rewrite immutable release."
+            exit 0
+          fi
+          gh release create "${TAG}" \
+            dist/kaori-tls-management-${TAG}.tar.gz dist/SHA256SUMS \
+            --target "${GITHUB_SHA}" \
+            --title "KAORI TLS Management ${TAG} (Community Preview)" \
+            --notes-file docs/releases/v0.1.0-rc.1.md \
+            --prerelease

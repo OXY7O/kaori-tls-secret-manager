@@ -1,0 +1,3 @@
+# Dummy examples only; replace with operator-approved namespaces.
+app-development
+payments-staging
