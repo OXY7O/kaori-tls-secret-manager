@@ -8,7 +8,6 @@
 | --- | --- |
 | [kaori-logo.png](../assets/kaori-logo.png) | Official wordmark for the GitHub README and documentation |
 | [kaori-mark.png](../assets/kaori-mark.png) | Compact shield-K icon for community assets and terminal artwork |
-| [kaori-terminal.txt](../assets/kaori-terminal.txt) | Accessible monochrome terminal fallback concept |
 
 The PNG files are the distributed image source of truth; the README uses PNG, not an SVG logo.
 
