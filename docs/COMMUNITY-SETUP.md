@@ -30,7 +30,9 @@ Labels are **recommendations**; adding this file does not create labels in the G
 ## Repository settings
 
 - Enable private vulnerability reporting under repository Security settings if supported and nominate a private disclosure contact.
-- Set branch protections/rulesets so a maintainer review and relevant offline CI checks are required before merging to the future stable branch.
+- Protect `main` with pull requests, resolved conversations, and a **required GitHub Actions check named `Quality Gate`** (job id: `quality_gate`). This runs syntax, regression, CLI smoke tests and a no-cluster-access assertion. For a single maintainer, configure 0 required approvals if GitHub offers that option; don't require a second reviewer.
+- Do **not** require `Publish Release` for merging: the release job only runs after a push/merge to `main`, and would otherwise block pull requests.
+- If a previous ruleset required `offline`, replace that obsolete check with `Quality Gate` and choose **GitHub Actions** as its source. The Actions connection cannot edit rulesets automatically; check repository Settings → Rules → Rulesets.
 - Keep Actions permissions minimally scoped; do not add production kubeconfigs or recovery keys as CI secrets.
 - Decide whether GitHub Discussions should be enabled for community questions; otherwise route sanitized support issues through existing templates.
 - Confirm the initial release version, source archive integrity, supported environments and release note checks with [release checklist](RELEASE-CHECKLIST.md) before promoting from community prerelease to stable production support.
