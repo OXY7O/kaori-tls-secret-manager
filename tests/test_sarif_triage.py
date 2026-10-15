@@ -25,10 +25,10 @@ def sample(rule="py/clear-text-logging-sensitive-data", score="8.1"):
             "results": [{
                 "ruleId": rule,
                 "message": {"text": "sensitive fixture must NOT enter metadata index"},
-                "locations": [{"location": {"physicalLocation": {
+                "locations": [{"physicalLocation": {
                     "artifactLocation": {"uri": "scripts/a.py"},
                     "region": {"startLine": 10}
-                }}}],
+                }}],
                 "codeFlows": [{"threadFlows": [{"locations": [
                     {"location": {"physicalLocation": {
                         "artifactLocation": {"uri": "scripts/a.py"},
