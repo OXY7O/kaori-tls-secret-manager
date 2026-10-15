@@ -2,7 +2,7 @@
 """KAORI TLS Secret Manager: guarded Create, Read, Update and Delete.
 
 Standalone Python stdlib + kubectl + openssl + age. No automatic writes:
-plan -> signed approval -> exact target/plan confirmations -> API preconditions.
+plan -> interactive operator confirmation OR signed approval -> encrypted recovery -> API preconditions.
 Single-target same-SAN Update is a guarded additional path; original batch renewal lives in the KAORI wizard.
 """
 from __future__ import annotations
@@ -390,8 +390,22 @@ def plan_delete(args):
 
 def validate_approval(args, plan):
     require(args.approve == plan["plan_id"], "Wrong PLAN ID")
-    require(args.confirm_target == f"{plan['namespace']}/{plan['secret']}",
-            "Target confirmation mismatch")
+    label = f"{plan['namespace']}/{plan['secret']}"
+    require(args.confirm_target == label, "Target confirmation mismatch")
+    if getattr(args, "operator_mode", False):
+        # Explicit human-in-terminal workflow for a single authorized operator.
+        # This is NEVER the default for machine-to-machine/automation calls.
+        require(sys.stdin.isatty(), "Single-operator approval requires an interactive terminal")
+        require(getattr(args, "operator_ack", None) == f"{plan['action']} {label}",
+                "Exact typed operation/target confirmation is required")
+        if plan["action"] == "DELETE":
+            require(getattr(args, "operator_attested", False),
+                    "Confirm there are no external consumers before Delete")
+        return
+    require(bool(getattr(args, "approval_record", None) and
+                 getattr(args, "approval_signature", None) and
+                 getattr(args, "approval_trust_key", None)),
+            "Signed approval and anchored trust public key required")
     record = Path(args.approval_record)
     signature = Path(args.approval_signature)
     trust = Path(args.approval_trust_key)
@@ -490,8 +504,19 @@ def apply(args):
                 plan["ingress_hosts"], "Ingress references changed since plan")
     if args.action in ("UPDATE", "DELETE"):
         require(args.backup_recipient, "Update/Delete requires encrypted age backup recipient")
-        age_backup(original, directory / f"{plan['action'].lower()}-{plan['plan_id']}-backup.age",
-                   args.backup_recipient)
+        encrypted = age_backup(
+            original, directory / f"{plan['action'].lower()}-{plan['plan_id']}-backup.age",
+            args.backup_recipient)
+        if getattr(args, "operator_mode", False):
+            recovery_identity = Path(getattr(args, "backup_identity", "") or "").expanduser()
+            require(recovery_identity.is_file() and not recovery_identity.is_symlink() and
+                    recovery_identity.stat().st_mode & 0o077 == 0,
+                    "Protected local recovery identity required for backup verification")
+            # Verify real decryptability BEFORE sending a Kubernetes write.
+            # Decrypted Secret contents remain in memory, never in output logs.
+            decrypted = call(["age", "-d", "-i", recovery_identity, encrypted])
+            require(decrypted == canonical(original),
+                    "Encrypted backup recovery verification failed; no Secret write attempted")
     audit = {"schema_version": 1, "action": args.action,
              "plan_id": plan["plan_id"], "target": f"{plan['namespace']}/{plan['secret']}",
              "created_utc": datetime.now(UTC).isoformat(), "status": "MUTATION_UNCERTAIN"}
@@ -580,11 +605,21 @@ def main(argv=None):
             sub.add_argument("--plan", required=True)
             sub.add_argument("--approve", required=True, help="Exact immutable plan ID")
             sub.add_argument("--confirm-target", required=True, help="Exact namespace/secret")
-            sub.add_argument("--approval-record", required=True)
-            sub.add_argument("--approval-signature", required=True)
+            sub.add_argument("--approval-record",
+                             help="Signed approval JSON for non-interactive/enterprise workflow")
+            sub.add_argument("--approval-signature",
+                             help="Detached signature for signed approval workflow")
             sub.add_argument("--approval-trust-key", default="/etc/kaori/tls-approval-public.pem")
+            sub.add_argument("--operator-mode", action="store_true",
+                             help="Single-operator interactive TTY confirmation (no external signature)")
+            sub.add_argument("--operator-ack",
+                             help="Exact action and target typed by the operator in wizard")
+            sub.add_argument("--operator-attested", action="store_true",
+                             help="Operator confirms no external consumers (Delete only)")
         if cmd in ("update", "delete"):
             sub.add_argument("--backup-recipient", required=True)
+            sub.add_argument("--backup-identity",
+                             help="Protected age identity; verifies local encrypted backup before write")
     args = parser.parse_args(argv)
     try:
         require(bool(args.context), "Explicit --context is required")
