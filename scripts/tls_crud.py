@@ -3,7 +3,7 @@
 
 Standalone Python stdlib + kubectl + openssl + age. No automatic writes:
 plan -> signed approval -> exact target/plan confirmations -> API preconditions.
-Single-target same-SAN Update is a prototype; legacy batch renewal is not ported.
+Single-target same-SAN Update is a guarded additional path; original batch renewal lives in the KAORI wizard.
 """
 from __future__ import annotations
 
