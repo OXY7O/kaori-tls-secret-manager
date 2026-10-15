@@ -6,6 +6,27 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 No subsequent user-facing changes have been recorded.
 
+## [0.1.1] - 2026-10-15
+
+**Documentation and release-process maintenance patch; no TLS management behavior changes.**
+
+### Changed
+
+- Reworked README, FAQ, Support, Security, Governance and Changelog messaging to reflect the published open-source utility.
+- Consolidated installation, architecture, operator and maintainer guidance into current versioned documentation.
+- Replaced obsolete migration and task-checklist documents with evergreen release quality guidance.
+- Made published-version documentation regression checks derive their expected version from `VERSION` instead of hardcoding `v0.1.0`.
+- Simplified generated GitHub Release titles for future SemVer versions.
+
+### Added
+
+- Automated relative documentation-link integrity checks and guards against obsolete project-state terms.
+- Version-specific `v0.1.1` release notes and updated secure setup examples.
+
+### Compatibility
+
+- No changes to runtime TLS Secret operations, authorization, backup, rollback, or CLI commands.
+
 ## [0.1.0] - 2026-10-15
 
 **First versioned public source release.** Semantic Versioning `0.x` allows interface evolution while retaining an immutable release history.
@@ -55,5 +76,6 @@ No subsequent user-facing changes have been recorded.
 - Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
 - Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
+[0.1.1]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.1
 [0.1.0]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0
 [0.1.0-rc.1]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0-rc.1
