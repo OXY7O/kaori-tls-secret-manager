@@ -1621,15 +1621,24 @@ def toolkit_menu(args):
                 file_hint("Per-IP drift evidence", saved)
                 hint("Legitimate external TLS termination may report MISMATCH; review before acting.")
             elif choice == "5":
-                text_data = tls_ops.prometheus_metrics(rows, context)
+                header("PROMETHEUS METRICS EXPORT / READ ONLY")
+                suggested = tls_ops.default_metrics_cluster_label(context)
+                hint("This is a monitoring label, not a Kubernetes cluster selector.")
+                hint("Only aggregate certificate validity counts are exported.")
+                label = ask("Prometheus cluster label (letters/digits/._-)", suggested)
+                text_data = tls_ops.prometheus_metrics(rows, label)
                 saved = tls_ops.atomic_evidence(report_root, "metrics",
-                                               {"context": context, "metrics": text_data})
+                                               {"context": context, "cluster_label": label,
+                                                "namespaces": namespaces,
+                                                "metrics": text_data})
                 prom = saved.with_name("kaori_tls.prom")
                 with prom.open("x", encoding="utf-8") as stream:
                     stream.write(text_data)
                 prom.chmod(0o600)
+                print(f"  Cluster label: {label}")
                 file_hint("Prometheus textfile; not published automatically", prom)
-                hint("Publish through the approved monitoring deployment process; do not expose sensitive data.")
+                file_hint("Local export evidence", saved)
+                hint("The file is not pushed to Prometheus; configure your approved textfile collector.")
             ok("Read-only utility completed. Kubernetes Secrets were not modified.")
         except (Stop, OSError, ValueError, KeyError, TypeError) as exc:
             warning(f"Diagnostic STOP: {exc}")
