@@ -7,7 +7,7 @@ This is a **release acceptance gate**, not a backlog on the project homepage. Th
 - [ ] Complete application source, offline tests, real command documentation and generic examples are present on the release branch.
 - [ ] README commands are independently tested from a fresh clone on supported Linux/WSL environments.
 - [ ] Changelog, Apache-2.0 LICENSE, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, SUPPORT, governance and bug/feature/PR templates are reviewed and linked.
-- [ ] The SVG identity assets render correctly on GitHub; terminal branding is legible with **--plain** and **NO_COLOR** if integrated.
+- [ ] The PNG identity assets render correctly on GitHub; terminal branding is legible with **--plain** and **NO_COLOR** if integrated.
 - [ ] Repository topic tags, Discussions policy (if enabled), issue labels, private vulnerability reporting and branch protections/rulesets are configured by authorized administrators.
 
 ## Source security and CI
