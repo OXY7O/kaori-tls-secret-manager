@@ -8,8 +8,8 @@ Secret management utility; compromise or misuse may expose private keys or disru
 - Manage only authorized Kubernetes contexts and approved namespaces.
 - Keep `kubeconfig`, approver signing keys, PEM private keys, evidence, encrypted backups and
   plan/journal files outside the source checkout and out of public Git.
-- Require an independent, root-anchored approver key for mutations. The PLAN ID is an integrity
-  identifier, **not** a digital signature. Avoid granting approval solely to the requester.
+- **Interactive single-operator Create/Delete:** intentionally uses a local TTY, typed exact action/target, immutable Plan ID and—for Delete—explicit no-external-consumers attestation. No external signature is required for this intended local usage.
+- **Optional non-interactive signed approval mode:** continues to require an independent, root-anchored approver key. Plan IDs are integrity identifiers, not digital signatures. Keep signed approvals separate from single-operator interactive mode.
 - Use least-privilege RBAC: scoped get/list for inventory and preflight; create/update/delete
   privileges only for approved operator identities in a controlled environment.
 - Any API timeout, UID/resourceVersion drift, failed backup, unknown dependency, or uncertain
@@ -19,7 +19,7 @@ Secret management utility; compromise or misuse may expose private keys or disru
 - Server-side UID/RV delete preconditions and update resourceVersion conflicts are mandatory,
   not substitutes for change authorization, backup/restore or endpoint health checks.
 - Ingress, Pod and Gateway API scans cannot prove absence of consumers outside their scope.
-  A signed owner attestation is mandatory but must not be treated as proof of safe deletion.
+  The single operator must explicitly attest that no external consumers remain; this human assertion is not a substitute for automated dependency checks. A separately signed owner attestation is part of the optional enterprise policy, not the interactive default.
 
 ## Known limitations before a stable production release
 
