@@ -20,7 +20,7 @@ Recommended **main** branch ruleset:
 - For a single maintainer, do not require a second human approval unless organizational policy demands it.
 - Do not require **Publish Release** to pass before merge: it runs only on main after merge.
 
-Repository rulesets and security reporting settings are controlled in GitHub Settings. This documentation does not imply that settings have been activated.
+Run [CodeQL scans](CODE-SCANNING.md) for Python and GitHub Actions. Review initial code scanning findings before making those jobs required checks. Repository rulesets and security reporting settings are controlled in GitHub Settings. This documentation does not imply that settings have been activated.
 
 ## Maintenance practices
 
