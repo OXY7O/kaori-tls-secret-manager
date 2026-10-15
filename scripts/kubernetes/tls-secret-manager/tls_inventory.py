@@ -190,15 +190,16 @@ def _write_exclusive(path, data, *, as_csv=None):
     path = Path(path)
     if path.is_symlink() or path.exists():
         raise ValueError(f"Refusing to overwrite existing or unsafe evidence: {path}")
-    if as_csv is not None:
-        with path.open("x", newline="", encoding="utf-8") as stream:
+    # Set permissions at file creation, not after sensitive metadata is written.
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(path, flags, 0o600)
+    with os.fdopen(fd, "w", newline="", encoding="utf-8") as stream:
+        if as_csv is not None:
             writer = csv.DictWriter(stream, fieldnames=as_csv, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(data)
-    else:
-        with path.open("x", encoding="utf-8") as stream:
+        else:
             stream.write(data)
-    path.chmod(0o600)
     return path
 
 
