@@ -89,7 +89,7 @@ class SingleOperatorModeTests(unittest.TestCase):
     def test_create_from_wizard_uses_no_signing_artifacts(self):
         args = types.SimpleNamespace(context=None)
         responses = iter(["test-tls", "", "PROCEED",
-                          "CREATE sandbox/test-tls", "plan123"])
+                          "CREATE sandbox/test-tls"])
         with patch.object(wizard, "exec_read", side_effect=[
             "dev-context\n", '{"items":[{"metadata":{"name":"sandbox"}}]}']), \
              patch.object(wizard, "choose", side_effect=["dev-context", "sandbox"]), \
@@ -127,7 +127,7 @@ class SingleOperatorModeTests(unittest.TestCase):
     def test_delete_guided_flow_uses_single_operator_without_signatures(self):
         args = types.SimpleNamespace(context=None)
         answers = iter(["unused-tls", "", "PROCEED", "UNUSED",
-                        "DELETE sandbox/unused-tls", "plan123"])
+                        "DELETE sandbox/unused-tls"])
         with patch.object(wizard, "exec_read", side_effect=[
             "dev-context\n", '{"items":[{"metadata":{"name":"sandbox"}}]}']), \
              patch.object(wizard, "choose", side_effect=["dev-context", "sandbox"]), \
