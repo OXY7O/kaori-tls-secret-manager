@@ -34,16 +34,18 @@ def atomic_evidence(root, stem, rows, *, fields=None):
     location = root / name
     location.mkdir(mode=0o700)
     path = location / ("results.csv" if fields else "results.json")
-    if fields:
-        with path.open("x", newline="", encoding="utf-8") as stream:
+    # The evidence directory is private; create each file private as well,
+    # even if the caller's umask is unexpectedly permissive.
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(path, flags, 0o600)
+    with os.fdopen(fd, "w", newline="", encoding="utf-8") as stream:
+        if fields:
             writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(rows)
-    else:
-        with path.open("x", encoding="utf-8") as stream:
+        else:
             json.dump(rows, stream, indent=2, ensure_ascii=False)
             stream.write("\n")
-    path.chmod(0o600)
     return path
 
 
