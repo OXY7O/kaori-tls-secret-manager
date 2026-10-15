@@ -45,7 +45,7 @@ Review **Help** then **Exit** without starting Kubernetes discovery. The same gu
 ### HTTPS checks when the workspace is empty
 
 After resetting `~/k8s-tls-private/`, the wizard correctly shows **0 saved runs**.
-Main-menu **Reverify HTTPS** is for a previously executed renewal run with
+**Reverify HTTPS** is for a previously executed renewal run with
 `renewal-plan.json`, `execution-journal.json` and saved endpoint mapping. It
 cannot probe an arbitrary new endpoint without that evidence. When no run exists,
 press **Enter** or type **0** (or **QUIT**) to return. A valid full path to an
@@ -102,4 +102,4 @@ The code remains on a Draft PR until security, end-to-end DEV/UAT and operator s
 
 ## Simplified local Create/Delete workflow
 
-Start the original menu with `bash scripts/tls-secret-manager.sh wizard`, select 10 (Create) or 11 (Delete), follow the on-screen context/namespace/Secret prompts, and review the read-only plan. Press Enter to keep a plan only, or type PROCEED to enter the guided confirmation phase. Delete auto-reuses or offers to generate a protected age recovery identity, then requires UNUSED and the exact DELETE namespace/secret phrase. The immutable Plan ID is checked automatically. Before deletion the original Secret is encrypted and the backup is verified by decrypting it locally. The optional signed CLI flow is not needed for single-operator interactive usage. See [DELETE-TLS-SECRET-SOP.md](DELETE-TLS-SECRET-SOP.md).
+Start the original menu with `bash scripts/tls-secret-manager.sh wizard`, select **Create TLS Secret** or **Delete TLS Secret**, follow the on-screen context/namespace/Secret prompts, and review the read-only plan. Press Enter to keep a plan only, or type PROCEED to enter the guided confirmation phase. Delete auto-reuses or offers to generate a protected age recovery identity, then requires UNUSED and the exact DELETE namespace/secret phrase. The immutable Plan ID is checked automatically. Before deletion the original Secret is encrypted and the backup is verified by decrypting it locally. The optional signed CLI flow is not needed for single-operator interactive usage. See [DELETE-TLS-SECRET-SOP.md](DELETE-TLS-SECRET-SOP.md).
