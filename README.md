@@ -1,24 +1,21 @@
 <p align="center">
-  <img src="assets/kaori-logo.svg" width="660" alt="KAORI TLS Certificate Manager — Kubernetes TLS lifecycle CLI">
+  <img src="assets/kaori-logo.png" width="660" alt="KAORI TLS Certificate Manager — Kubernetes TLS management utility">
 </p>
 
 <p align="center">
-  <strong>Inspect, validate, renew, create and safely decommission Kubernetes TLS Secrets from one operator-friendly terminal.</strong>
+  <strong>Safer Kubernetes TLS certificate management.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Offline CI" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=feat%2Fcrud-and-repo-migration"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB">
-  <img alt="Kubernetes TLS Secrets" src="https://img.shields.io/badge/Kubernetes-TLS%20Secrets-326CE5">
-  <img alt="OS" src="https://img.shields.io/badge/platform-Linux%20%7C%20WSL-394A59">
   <a href="#release-and-compatibility"><img alt="Preview" src="https://img.shields.io/badge/release-development%20preview-orange"></a>
 </p>
 
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#what-you-can-do">Features</a> ·
-  <a href="#cli-reference">CLI reference</a> ·
+  <a href="#commands-and-usage">Commands</a> ·
   <a href="docs/OPERATOR-GUIDE.md">Operator guide</a> ·
   <a href="CONTRIBUTING.md">Contributing</a> ·
   <a href="CHANGELOG.md">Changelog</a>
@@ -28,9 +25,9 @@
 
 ## Overview
 
-**KAORI TLS Certificate Manager** is an open-source, terminal-first toolkit for managing Kubernetes Secrets of type **kubernetes.io/tls**. It brings together certificate inventory, expiry audits, trust and HTTPS diagnostics, guarded certificate renewal, and explicit Create/Delete lifecycles in a single CLI and guided wizard.
+**KAORI TLS Certificate Manager** is an open-source utility for managing Kubernetes Secrets of type **kubernetes.io/tls**. It brings together certificate inventory, expiry audits, trust and HTTPS diagnostics, guarded certificate renewal, and explicit Create/Delete lifecycles in one utility with a guided terminal interface.
 
-Designed for **human-controlled infrastructure operations**: inspect before changing, bind every mutation to a reviewed target, preserve recovery evidence, and stop on unsafe or ambiguous state. Both a guided terminal interface and command-oriented JSON-producing operations are available.
+Designed for **human-controlled infrastructure operations**: inspect before changing, bind every mutation to a reviewed target, preserve recovery evidence, and stop on unsafe or ambiguous state. Choose a guided terminal experience or script-oriented commands with JSON output.
 
 > **Scope:** KAORI manages certificate/key material already issued by your CA or certificate provider. It does **not** issue certificates, run ACME challenges, or replace cert-manager.
 
@@ -42,8 +39,8 @@ Designed for **human-controlled infrastructure operations**: inspect before chan
 | **TLS Toolbox & Doctor** | Inspect stored certificates; compare live HTTPS hostname, SNI, CA trust and served fingerprint | Distinguishes Secret state from load-balancer/endpoint state |
 | **Prometheus textfile metrics** | Export aggregate expiration/audit gauges to a local .prom file | Export only; does not configure or push into Prometheus |
 | **Renew / Update** | Guided target discovery, selective READY/HOLD/SKIPPED review and renewal; optional single-target same-SAN CRUD Update | Fresh plans, authorized writes, encrypted backups, journaling, scoped recovery |
-| **Create** | Wizard menu **10**, or plan-create/create CLI | Validates supplied PEM/key, checks target absence, never overwrites |
-| **Delete / decommission** | Wizard menu **11**, or plan-delete/delete CLI | **HOLD** when Ingress/Pod/Gateway references, ownership or visibility blocks safety; backup before deletion, API UID/resourceVersion preconditions |
+| **Create** | Guided Create or plan-create/create commands | Validates supplied PEM/key, checks target absence, never overwrites |
+| **Delete / decommission** | Guided Delete or plan-delete/delete commands | **HOLD** when Ingress/Pod/Gateway references, ownership or visibility blocks safety; backup before deletion, API UID/resourceVersion preconditions |
 | **Recovery & evidence** | Run history, HOLD review, HTTPS re-verification and guarded rollback flows | No blind retries after an uncertain mutation; private local artifacts |
 
 This is not an unattended controller. In particular, a clean Kubernetes reference scan **does not prove** a Secret is unused by external load balancers, proxies or integrations; a human must confirm external dependencies before Delete.
@@ -74,7 +71,7 @@ bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
 ~~~
 
-The wizard is the default when you run the launcher without arguments. Select **9 — Help** to explore the available controls or **0 — Exit**. **Pressing Enter at the first menu selects Inventory**, which connects to Kubernetes when a valid context is available.
+The guided interface starts automatically when you run the launcher without arguments. Select **Help** to explore features or **Exit** to leave. Accepting the default selection starts read-only Inventory, which accesses your selected Kubernetes context.
 
 ### First read-only commands
 
@@ -94,24 +91,17 @@ bash scripts/tls-secret-manager.sh crud \
 
 Read-only CRUD results are JSON. The CRUD engine requires the global **--context** before the subcommand.
 
-## Guided operator menu
+## Guided operations
 
-| Option | Function | Option | Function |
-| :---: | :--- | :---: | :--- |
-| 1 | Inventory | 7 | Run history |
-| 2 | Expiry audit | 8 | Status guide |
-| 3 | TLS Toolbox | 9 | Help |
-| 4 | Reverify HTTPS (saved run) | 10 | Create TLS Secret |
-| 5 | Renew TLS | 11 | Delete TLS Secret |
-| 6 | Review HOLD | 0 | Exit |
+The interactive interface groups **Inventory**, **Expiry Audit**, **TLS Toolbox**, **HTTPS Verification**, **Renewal**, **HOLD Review**, **Run History**, **Create**, and **Delete** in one place. Select the operation by its displayed name; numeric shortcuts can change between versions.
 
-**Option 3 → TLS Doctor** can inspect a newly selected Secret or endpoint without a prior renewal run. **Option 4** requires a saved renewal plan; it is not a generic endpoint scanner.
+For a new TLS Secret or HTTPS endpoint, use **TLS Toolbox → TLS Doctor**. **Reverify HTTPS** examines evidence from a previously saved renewal run.
 
 Interactive Create/Delete is optimized for a **single authorized operator**: select context, namespace and exact Secret; review the read-only plan; explicitly type **PROCEED** to continue. Delete also requires an **UNUSED** external-consumer attestation and exact target confirmation; KAORI provisions/reuses a protected age recovery identity and verifies its encrypted backup before the write. Optional **independently signed approvals** remain supported for advanced non-interactive workflows. There is no force-delete shortcut.
 
-Read the [single-operator Delete walkthrough](docs/DELETE-TLS-SECRET-SOP.md) before using menu 11.
+Read the [single-operator Delete walkthrough](docs/DELETE-TLS-SECRET-SOP.md) before using the Delete workflow.
 
-## CLI reference
+## Commands and usage
 
 All entrypoints use the same repository; no second checkout is required.
 
@@ -123,7 +113,7 @@ All entrypoints use the same repository; no second checkout is required.
 | `bash scripts/tls-secret-manager.sh crud --help` | Guarded CRUD command help |
 | `bash scripts/tls-secret-manager.sh --help` | Historical renewal-engine command help |
 
-**Guarded CRUD** subcommands (prefix: **bash scripts/tls-secret-manager.sh crud --context CONTEXT**):
+**Guarded lifecycle operations** (prefix: **bash scripts/tls-secret-manager.sh crud --context CONTEXT**):
 
 | Subcommand | Use |
 | :--- | :--- |
@@ -135,7 +125,7 @@ All entrypoints use the same repository; no second checkout is required.
 
 The planning commands are read-only with respect to Kubernetes and store private plan/evidence files in **--workspace**, which must be outside the checkout. Mutation commands require a plan, exact Plan ID, target confirmation and either interactive operator-mode authorization or a signed approval record. Update and Delete require an age backup recipient. **Do not substitute a bare kubectl delete command for KAORI's guarded Delete workflow.**
 
-**Advanced renewal engine:** `discover`, `reconcile`, `inspect`, `verify-source`, `plan`, `renew`, `verify`, `verify-endpoints`, `rollback`, `rollback-target`, `report`. For argument details, invoke **--help** and see the [operator guide](docs/OPERATOR-GUIDE.md) and [example target CSV files](scripts/kubernetes/tls-secret-manager/examples/).
+**Advanced renewal operations:** `discover`, `reconcile`, `inspect`, `verify-source`, `plan`, `renew`, `verify`, `verify-endpoints`, `rollback`, `rollback-target`, `report`. For argument details, invoke **--help** and see the [operator guide](docs/OPERATOR-GUIDE.md) and [example target CSV files](scripts/kubernetes/tls-secret-manager/examples/).
 
 **Toolbox:** [TLS Doctor and Prometheus metrics usage](docs/TOOLBOX-METRICS-DOCTOR.md) covers read-only standalone commands, metrics labels, private output directories and endpoint mismatches. [Local testing](docs/LOCAL-TEST.md) covers offline checks and trial contexts.
 
@@ -152,9 +142,9 @@ See the [security policy](SECURITY.md) and [architecture](docs/ARCHITECTURE.md).
 
 ## Release and compatibility
 
-**Current source version: 0.1.0-dev (development preview).** The implementation lives on the open feature branch / Draft PR; **main does not yet contain the complete CLI**. The historical offline regression suite runs in GitHub Actions, but a successful CI badge is **not** evidence of real-cluster DEV/UAT acceptance, secure release signing, or authorization for production changes.
+**Current source version: 0.1.0-dev (development preview).** The implementation lives on the open feature branch / Draft PR; **main does not yet contain the complete utility**. The historical offline regression suite runs in GitHub Actions, but a successful CI badge is **not** evidence of real-cluster DEV/UAT acceptance, secure release signing, or authorization for production changes.
 
-Use the documented Linux/WSL source workflow for evaluation. There is **no published binary, Homebrew package, container image, or supported production release** to install today. See the [release checklist](docs/RELEASE-CHECKLIST.md) for acceptance criteria and [changelog](CHANGELOG.md) for work delivered to the development branch.
+Use the documented Linux/WSL source workflow for evaluation. There is **no published standalone binary, Homebrew package, container image, or supported production release** to install today. See the [release checklist](docs/RELEASE-CHECKLIST.md) for acceptance criteria and [changelog](CHANGELOG.md) for work delivered to the development branch.
 
 ## Documentation & community
 
@@ -168,4 +158,4 @@ Contributions, bug reports, accessibility improvements and sanitized synthetic r
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
-The wordmark and scalable shield mark in [assets/](assets/) are included as project identity assets. A terminal-safe textual mark is also provided for a later CLI banner integration.
+The PNG [wordmark](assets/kaori-logo.png) and [shield mark](assets/kaori-mark.png) are project identity assets. The utility renders the PNG in supported terminals and a matching text-safe shield elsewhere, respecting plain-text mode.
