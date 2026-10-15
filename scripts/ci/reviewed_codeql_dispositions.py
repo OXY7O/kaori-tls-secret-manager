@@ -35,13 +35,10 @@ EXPECTED = {
 }
 
 REASON = (
-    "Reviewed under KAORI security audit #17. This data-flow sink displays "
-    "Kubernetes Secret RESOURCE IDENTITY or diagnostic metadata intentionally "
-    "to the authorized operator, not Kubernetes Secret VALUE, tls.key, "
-    "kubeconfig, recovery identity, or credentials. Operational metadata is "
-    "confidential: restrict terminal logs, stdout capture, screenshots and "
-    "evidence to the authorized operator per docs/CODE-SCANNING.md. "
-    "Intentional CLI behavior retained; residual metadata exposure accepted."
+    "Audit #17: this path prints operator-visible Kubernetes Secret resource "
+    "identifiers or TLS diagnostic metadata, not key/credential values. "
+    "Confidential stdout and evidence are access-controlled per "
+    "docs/CODEQL-DISPOSITIONS.md. Accepted operator-metadata risk."
 )
 
 
