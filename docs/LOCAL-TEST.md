@@ -40,19 +40,19 @@ For the **same original KAORI menu**, run in an interactive terminal:
 bash scripts/tls-secret-manager.sh wizard --plain
 ```
 
-Review **9 Help** then **0 Exit** without starting Kubernetes discovery. Existing menu item numbers 1-9 are preserved; new 10 Create and 11 Delete appear in the same menu.
+Review **Help** then **Exit** without starting Kubernetes discovery. The same guided utility includes Create, Delete, inventory, diagnostics and renewal without requiring separate applications.
 
 ### HTTPS checks when the workspace is empty
 
 After resetting `~/k8s-tls-private/`, the wizard correctly shows **0 saved runs**.
-Main-menu **4 Reverify HTTPS** is for a previously executed renewal run with
+Main-menu **Reverify HTTPS** is for a previously executed renewal run with
 `renewal-plan.json`, `execution-journal.json` and saved endpoint mapping. It
 cannot probe an arbitrary new endpoint without that evidence. When no run exists,
 press **Enter** or type **0** (or **QUIT**) to return. A valid full path to an
 older saved `renewal-plan.json` can still be entered.
 
 To inspect a TLS Secret or HTTPS endpoint **without any previous run**, use
-**3 TLS Toolbox → 4 TLS Doctor**. After selecting context, namespace, and
+**TLS Toolbox → TLS Doctor**. After selecting context, namespace, and
 Secret, leave the HTTPS hostname blank for stored-certificate checks only, or
 enter a concrete approved hostname for a live SNI/trust/fingerprint probe.
 This operation does not write Kubernetes Secrets. Read
@@ -67,7 +67,7 @@ kubectl --context APPROVED_DEV_CONTEXT auth can-i get secrets -n APPROVED_DEV_NA
 bash scripts/tls-secret-manager.sh crud --context APPROVED_DEV_CONTEXT inventory --namespace APPROVED_DEV_NAMESPACE
 ```
 
-Or launch original wizard and select menu 1 Inventory. This reads Secrets and may produce private local reports; avoid pasting names, hostnames, private files or kubeconfig contents into public issues.
+Or launch original wizard and select Inventory. This reads Secrets and may produce private local reports; avoid pasting names, hostnames, private files or kubeconfig contents into public issues.
 
 ## Plan Create / Delete — no mutation
 
