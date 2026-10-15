@@ -43,8 +43,8 @@ class ReviewedDispositionTests(unittest.TestCase):
             m.validate(data)
 
     def test_consequence_is_accepted_metadata_risk_not_claimed_fix(self):
-        self.assertIn("RESOURCE IDENTITY", m.REASON)
-        self.assertIn("residual metadata exposure accepted", m.REASON)
+        self.assertIn("Secret resource names/TLS diagnostics", m.REASON)
+        self.assertIn("Accepted residual metadata exposure", m.REASON)
         self.assertNotIn("secure forever", m.REASON)
 
 
