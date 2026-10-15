@@ -12,7 +12,7 @@ KAORI has one supported launcher, **bash scripts/tls-secret-manager.sh**, and tw
 | `bash scripts/tls-secret-manager.sh crud [options] subcommand` | Guarded Create/Read/Update/Delete backend |
 | `bash scripts/tls-secret-manager.sh [options] subcommand` | Advanced renewal engine |
 
-The equivalent compatibility launcher **scripts/kaori-tls-secret-manager.sh** forwards into the same application. The Python implementation uses the standard library.
+The compatibility launcher **scripts/kaori-tls-secret-manager.sh** forwards into the same application. The Python implementation uses the standard library.
 
 ## Wizard
 
@@ -69,7 +69,7 @@ bash scripts/tls-secret-manager.sh crud --context APPROVED_CONTEXT \
 | **update** | same plus --backup-recipient | One guarded replace with encrypted backup |
 | **delete** | --namespace, --secret, --plan, --approve, --confirm-target, --backup-recipient plus authorization | One guarded conditional deletion |
 
-**Execution authorization:** after reviewing the exact immutable plan, use either the **single-operator interactive wizard** (the Create operation or 11) or the documented **independently signed non-interactive approval**. The CLI exposes **--operator-mode**, **--operator-ack**, **--operator-attested** (Delete) for TTY integration, and **--approval-record**, **--approval-signature**, **--approval-trust-key** for signed enterprise approvals. These are **not** interchangeable convenience flags; never use them to bypass review. Update/Delete support **--backup-identity** to validate encrypted recovery locally. For complete mutation examples and approval contract see [Operator guide](OPERATOR-GUIDE.md).
+**Execution authorization:** after reviewing the exact immutable plan, use either the **single-operator interactive wizard** (guided Create or Delete) or the documented **independently signed non-interactive approval**. The CLI exposes **--operator-mode**, **--operator-ack**, **--operator-attested** (Delete) for TTY integration, and **--approval-record**, **--approval-signature**, **--approval-trust-key** for signed enterprise approvals. These are **not** interchangeable convenience flags; never use them to bypass review. Update/Delete support **--backup-identity** to validate encrypted recovery locally. For complete mutation examples and approval contract see [Operator guide](OPERATOR-GUIDE.md).
 
 For Delete: observed **Ingress, Pod or Gateway API consumers**, known controller management, finalizers or incomplete scan visibility cause HOLD. A HOLD is not an executable deletion plan; no force override is available. An operator must separately attest to possible consumers outside Kubernetes.
 

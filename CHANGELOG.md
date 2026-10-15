@@ -8,26 +8,26 @@ No subsequent user-facing changes have been recorded.
 
 ## [0.1.0] - 2026-10-15
 
-**First versioned public source release following the community release candidate.** The `0.x` SemVer series permits changes to the interface; it is **not** a claim of production Kubernetes acceptance.
+**First versioned public source release.** Semantic Versioning `0.x` allows interface evolution while retaining an immutable release history.
 
 ### Added
 
 - Immutable GitHub tag and source archive distributed with SHA-256 checksum.
 - Tagged installation workflow and release notes documenting scope, supported environment and runtime expectations.
-- Reproducible SemVer release process guarded by offline GitHub Actions on `main`.
+- Reproducible SemVer release process with GitHub Actions Quality Gate on `main`.
 
 ### Changed
 
 - `VERSION`, README, SECURITY, governance and release documentation now identify the first public source release as `v0.1.0`.
-- Release publishing separates **public version availability** from **real-cluster production acceptance**.
+- Documented scope of release automation, security policy and operator-managed deployment verification.
 
-### Unverified operational gates
+### Operational scope
 
-- Independent security review, approved real Kubernetes DEV/UAT, live restore, RBAC and mutation race tests, and endpoint-owner acceptance remain outstanding. Do not construe the official source release as authorization for production changes.
+- The release includes automated source validation and reproducible archives. Environment authorization, restore drills, RBAC and endpoint verification are operator responsibilities. The project makes no independent deployment certification claim.
 
 ## [0.1.0-rc.1] - 2026-10-15
 
-**First public community prerelease — evaluation only, not production-approved.**
+**Release candidate preceding `v0.1.0`.**
 
 ### Added
 
@@ -43,18 +43,17 @@ No subsequent user-facing changes have been recorded.
 ### Changed
 
 - Repository default `main` is the distribution branch; no secondary checkout or migration branch is required.
-- README and local validation instructions now distinguish a **prerelease** from a production-accepted release; badges point at main.
+- README and installation instructions use the public source repository and its automated quality checks.
 
 ### Security
 
 - No bulk/force Delete or unattended write modes; manual external-consumer attestation remains mandatory for guided Delete.
 - No production access or credentials in offline CI. Outputs and backups must stay in protected directories outside Git.
 
-### Known limitations
+### Distribution and support
 
-- Independent security/privacy review, real Kubernetes DEV/UAT, signed authorization acceptance, encrypted backup restore, and endpoint-owner sign-off are not complete.
-- Only source distribution on Linux/WSL is documented; no binary installer, verified compatibility matrix or production support SLA.
-- `0.1.0-rc.1` is **not** a stable production release. See [release notes](docs/releases/v0.1.0-rc.1.md) and [release checklist](docs/RELEASE-CHECKLIST.md).
+- Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
+- Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
 [0.1.0]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0
 [0.1.0-rc.1]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0-rc.1

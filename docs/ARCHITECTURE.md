@@ -1,88 +1,47 @@
-# Architecture Decision: Standalone TLS Secret Manager
+# Architecture
 
-Status: **Original wizard, renewal modules and CRUD extension ported; DEV/UAT and release pending**  
-Scope: Kubernetes `kubernetes.io/tls` Secrets  
-Distribution target: public repository, versioned CLI releases  
-Operational documentation source: `OXY7O/ops-runbooks` (private)
+KAORI TLS Management is a terminal-first utility for inspecting and managing Kubernetes Secrets of type **kubernetes.io/tls**. It combines a guided interface, an explicit lifecycle backend, certificate diagnostics and audit/recovery evidence.
 
-## 1. Boundary and source of truth
+## Components
 
-- **This repository** owns the CLI implementation, unit/integration tests, generic examples, open-source documentation, release pipeline and release artifacts.
-- **ops-runbooks** owns internal rollout/operations procedures, ticket links, RBAC/deployment templates, and environment-specific evidence references. It must consume a pinned/versioned release of this tool and must not keep a duplicate actively maintained source tree.
-- Migration is not complete until the new public CLI is independently runnable, regression-tested, reviewed for secrets/internal identifiers, and has a versioned release. **Do not delete the old working copy prematurely**.
-- Existing protected renewal behavior and existing evidence/journal schemas should remain compatible, unless explicitly versioned with tests.
+| Component | Source | Responsibility |
+| --- | --- | --- |
+| Launchers | scripts/tls-secret-manager.sh, scripts/kaori-tls-secret-manager.sh | Select guided, diagnostic, CRUD or renewal operation |
+| Guided interface | scripts/kubernetes/tls-secret-manager/tls_secret_wizard.py | Operator prompts, target selection, confirmation and status |
+| Guarded lifecycle | scripts/tls_crud.py | Inventory, inspect, immutable Create/Update/Delete plans, single-target writes and safety enforcement |
+| Renewal engine | scripts/kubernetes/tls-secret-manager/tls_secret_manager.py | Discovery, selective renewal, endpoint verification, scoped recovery and reporting |
+| Inventory and diagnostics | tls_inventory.py, tls_ops.py | Expiry audit, stored certificate/HTTPS comparison and metrics textfile export |
+| Regression suite | tests/ | Synthetic, cluster-isolated validation for parsing, safety and CLI behavior |
 
-## 2. CRUD semantics
+There is no background controller, custom Kubernetes operator or automatic ACME issuance. The utility runs from an authorized operator's workstation and uses the selected kubeconfig context.
 
-| Operation | CLI concept | Preconditions | Data mutation |
-| --- | --- | --- | --- |
-| Create | `create` | Scope + checked certificate/key + verify target absent + approval + final precondition | Only creates one `kubernetes.io/tls` Secret; never overwrites |
-| Read | `inventory`, `inspect`, `health` | Explicit context and bounded namespaces; safe and private output | No Kubernetes Secret mutation; private local reports only |
-| Update | `renew` / `update` | Fresh bound plan; SAN/issuer/ownership checks; backup; approval; optimistic concurrency | Update only approved READY Secret targets and verify |
-| Delete | `delete` / `decommission` | Fresh dependency/ownership audit; encrypted backup; explicit deletion approval; live UID/resourceVersion preconditions | Deletes one approved, non-controller-managed Secret and verifies it is absent |
+## Lifecycle and trust boundaries
 
-`create` manages Secret material; it **does not issue certificates**. Reading Secret contents is restricted: never echo `tls.key` or raw Secret payload into terminal, JSON output or CI logs.
+1. **Scope:** select explicit Kubernetes context, namespace and target. Read-only queries report certificate metadata without printing TLS private keys.
+2. **Plan:** validate source PEM/key and Secret state, determine ownership/dependencies and record identity, UID/resourceVersion and fingerprint. An incomplete dependency scan yields **HOLD**.
+3. **Authorize:** the normal guided path uses typed target/action confirmations by one authorized operator. An independent signed-approval path is available for automated workflows.
+4. **Protect:** changes to existing material require age-encrypted recovery artifacts and journals stored outside the repository with restrictive access.
+5. **Execute:** validate the current Kubernetes object against the plan and use API write preconditions. Conflicts or uncertainty result in STOP, not an automatic retry.
+6. **Verify:** inspect resulting state and, where relevant, the separately served HTTPS certificate. A valid stored Secret does not prove that a proxy or load balancer serves it.
 
-## 3. Safety model
+## CRUD contracts
 
-### Shared controls
+| Operation | Preconditions | Result |
+| --- | --- | --- |
+| Create | Valid PEM/private-key pair, exact target, target absent, approved plan | Create only; existing Secrets are never overwritten |
+| Read | Explicit cluster and namespace | Safe TLS metadata and certificate identity inspection |
+| Update | Existing Secret, matching SAN set, fresh plan, encrypted backup, approval | One authorized replacement with concurrency checks |
+| Delete | No known active consumers, complete reference scan, ownership check, external-consumer attestation, backup and approval | Conditional single-target delete with post-write absence verification |
 
-1. Explicit Kubernetes context, namespace and target identity for mutations; refuse ambiguous or empty selection.
-2. Kube API read failures, RBAC gaps, issuer/ownership mismatch, conflicting controller ownership, cluster identity drift and uncertain dependency state **STOP** before writes.
-3. Dry-run/preflight must not mutate cluster state. Plans and expected fingerprints/UID/resourceVersions bind the exact approved targets. Revalidate immediately before any mutation.
-4. Preserve original identity and write-ahead journal. Encrypted recovery snapshot and per-target evidence are kept privately under restrictive permissions.
-5. No blind retry, implicit force, unattended mass operation, automatic rollback, or auto-deletion after a failed write. Reconciliation and operator approval are separate.
-6. Human acceptance includes application/endpoint health; saved TLS Secret certificate and configured hostname alone do not imply verified served HTTPS.
-7. No shell interpolation of untrusted names; use structured subprocess arguments; never log PEM private keys, backup material, or bearer tokens.
-8. Treat `NO_COLOR`, `--plain` and non-TTY machine-readable output as supported accessibility/scripting modes. Do not require emoji.
+Dependency discovery includes Ingress TLS references, Pod Secret references and Gateway API certificate references where available, along with owner/controller information. It cannot prove that out-of-cluster applications, load balancers or proxies do not rely on a Secret; those relationships require separate operator verification.
 
-### Create-specific
+## Data protection
 
-- Verify supported Secret type `kubernetes.io/tls`, PEM fullchain, matching unencrypted or safely provided key, valid cert dates, required SANs, CA chain/trust policy and explicit name/namespace.
-- Fail on pre-existing Secret; use an atomic server-side create where `AlreadyExists` means STOP. Never silently upgrade create to update.
-- Record the resulting UID/resourceVersion and certificate fingerprint, then verify stored Secret; HTTPS is a separate step.
+- Kubeconfig, private PEM material, evidence workspaces, age identities and backups must remain outside Git and public issue attachments.
+- Source certificate fingerprint and live endpoint fingerprint are independent measurements; use correct hostname, SNI and trusted CA bundle.
+- Rollback and reconciliation are explicit. A timeout or ambiguous Kubernetes response must not be treated as a successful write or retried blindly.
+- Plain-text mode and non-interactive machine-readable output avoid decorative ANSI/image sequences.
 
-### Delete-specific
+## Source distribution
 
-- Reject missing or partial reference visibility. Inspect Ingress TLS, Gateway API certificateRefs (where available), Pod references, ownerReferences, cert-manager/controller associations, and declared external consumers. Discovery cannot prove absence of every external client: require owner attestation.
-- Reject any controller-managed Secret, ambiguous consumer, namespace or cluster drift. Default to **blocked** for live references. No cascade deletions.
-- Require explicit single-operator typed target/action, immutable Plan ID, external-consumer attestation, encrypted backup with recovery roundtrip, and short-lived deletion plan bound to cluster UID, Secret UID, resourceVersion and fingerprint.
-- Use Kubernetes deletion **preconditions** on UID/resourceVersion (atomic API-side verification). Re-read or reconcile if preconditions fail; never delete by name alone on retry.
-- Verify target absence and that application dependencies/other Secrets were unaffected. Store immutable disposition as complete, stopped, or uncertain; no unverified success.
-- Initial release: one target per deletion. Bulk deletion, force, garbage collection or Secret ownership bypass are out of scope.
-
-## 4. Public development repository layout
-
-```text
-scripts/
-  tls-secret-manager.sh            # Default launcher, original KAORI UI
-  tls_crud.py                     # Guarded CRUD backend
-  kubernetes/tls-secret-manager/
-    tls_secret_manager.py         # Original renewal engine
-    tls_secret_wizard.py          # Original wizard + Create/Delete
-    tls_inventory.py
-    tls_ops.py
-    examples/                     # Synthetic sample CSV files
-tests/                            # Original + CRUD + integrated launcher tests
-docs/                             # Architecture, security, operator/laptop guides
-.github/workflows/ci.yml          # Offline regression
-```
-
-The existing launcher and Python stdlib implementation form the compatibility baseline. Public code must not hardcode organization-specific names, kube contexts, production endpoints, CA paths, private network addresses or credentials.
-
-## 5. Migration and acceptance gates
-
-- **Gate A — Public content review (file migration and synthetic fixture replacement complete; independent security review pending):** enumerate source/tests/example fixtures and scrub company identifiers, internal domains, cluster names, file paths, secret payloads and personal/production evidence. Git history from the private repository is **not copied** into the public repository.
-- **Gate B — Functional preservation (ported and offline regression PASS; DEV/UAT pending):** migrate audited implementation and all applicable synthetic regression tests. Preserve existing renewal, journal, backup, verification, selective rollback, and text/ANSI CLI behavior.
-- **Gate C — CRUD extension (wizard Create/Delete implemented; offline coverage present, DEV/UAT pending):** implement create and guarded delete with negative paths: already exists; wrong key; issuer/SAN mismatch; controller-owned target; active reference; RBAC incomplete; approval missing; stale UID/RV; failed backup; API timeout; uncertain deletion result.
-- **Gate D — CI and packaging (offline CI PASS; release/checksum and security scans pending):** Python compilation, offline tests, contract/security checks, documentation link tests, reproducible versioned release, checksum/integrity verification and usage docs; no real-cluster writes in CI.
-- **Gate E — DEV/UAT:** real-cluster permission-scoped tests, negative cases, audit evidence, operator sign-off. No claimed PASS before evidence.
-- **Gate F — Cutover (partial):** private ops-runbooks main now links to this public source; the historical Issue #67 and PR #68 are closed-unmerged as transferred. Pin a tested version/checksum in the runbook **only after** UAT and release acceptance.
-
-## 6. Changes not authorized by this decision
-
-- Publishing unsanitized private-repository contents or Git history.
-- Deploying to any production Kubernetes cluster.
-- Running write actions, changing RBAC, changing security gates, or merging public/private PRs before validated acceptance.
-- Claiming CRUD is available before create/delete implementations and tests pass.
-
+GitHub Actions **Quality Gate** compiles CLI modules and runs synthetic regression checks without cluster access. **Publish Release** builds a source archive and SHA256SUMS from the approved main commit. See the [release policy](RELEASE-POLICY.md) for the exact assurance boundary, and [command reference](COMMAND-REFERENCE.md) for the supported operations.

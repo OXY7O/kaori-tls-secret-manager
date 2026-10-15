@@ -5,7 +5,7 @@
 - [README](README.md): overview, quick start, available commands and release status.
 - [FAQ](docs/FAQ.md): stored versus served certificate, DELETE HOLD, backup keys and diagnostics.
 - [Command reference](docs/COMMAND-REFERENCE.md): all available CLI commands and examples.
-- [Local test guide](docs/LOCAL-TEST.md): offline checks and approved DEV/UAT read-only examples.
+- [Installation guide](docs/INSTALLATION.md): prerequisites, verification and authorized read-only commands.
 - [Operator guide](docs/OPERATOR-GUIDE.md) and [Delete SOP](docs/DELETE-TLS-SECRET-SOP.md): governed change workflows.
 - [Security policy](SECURITY.md): secret handling and private vulnerability reports.
 
@@ -21,4 +21,4 @@ Do **not** open a public issue for an exploitable vulnerability. See [SECURITY.m
 
 ## Operational responsibility
 
-KAORI is distributed as-is under Apache-2.0. The current development preview has no SLA, production support commitment or completed DEV/UAT acceptance. Maintainers cannot provide emergency hands-on access to clusters or authorize changes in your environment. For any live incident, follow your organization's incident response, certificate owner and recovery procedure.
+KAORI is distributed as-is under Apache-2.0. Version `v0.1.0` is distributed under Apache-2.0 without an SLA, managed infrastructure service, or environment-specific certification. Maintainers cannot access or authorize changes in your clusters. For any live incident, follow your organization's incident response, certificate owner and recovery procedure.

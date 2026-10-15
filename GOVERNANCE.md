@@ -1,6 +1,6 @@
 # Project governance
 
-KAORI TLS Certificate Manager is maintained in the open in the [OXY7O repository](https://github.com/OXY7O/kaori-tls-secret-manager).
+KAORI TLS Management is maintained in the open in the [OXY7O repository](https://github.com/OXY7O/kaori-tls-secret-manager).
 
 ## Collaboration
 
@@ -12,12 +12,12 @@ Security-impacting decisions require explicit review of failure modes, dependenc
 
 - **Contributors** propose focused changes and respond to review.
 - **Maintainers** triage reports, review patches, curate milestones, approve merges and control repository settings.
-- **Release maintainers** additionally validate the [release checklist](docs/RELEASE-CHECKLIST.md), versioning, integrity evidence and change log before creating a public release.
+- **Release maintainers** additionally validate the [release policy](docs/RELEASE-POLICY.md), versioning, integrity evidence and change log before creating a public release.
 
 Maintainers retain final discretion over merges, security disclosure coordination, release approval, branch policy and moderation. No current support SLA or dedicated maintainer on-call schedule is implied.
 
 ## Release lifecycle
 
-The application publishes **v0.1.0**, its initial public Semantic Versioning source release, after an offline regression gate on `main`. Release tags and dated changelog entries are immutable. **0.x** permits an evolving interface and does **not** constitute real Kubernetes DEV/UAT acceptance, production authorization or an operations SLA.
+KAORI TLS Management publishes versioned releases after the **Quality Gate** passes on `main`. Release tags and dated changelog entries are immutable. The `0.x` series permits interface changes; publishing source code does not confer authorization to modify Kubernetes workloads or a service-level guarantee.
 
-Compatibility-breaking CLI/menu/output changes require explicit rationale, documentation and regression testing. Production-impacting changes must be validated in an approved isolated environment before a maintainer can claim production readiness.
+Compatibility-breaking CLI/menu/output changes require explicit rationale, documentation and regression testing. Operational changes must be validated and authorized for the target environment by the responsible operator.

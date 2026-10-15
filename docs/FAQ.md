@@ -26,15 +26,15 @@ Delete takes an **encrypted backup** and locally verifies that it can be decrypt
 
 ### Why does Reverify HTTPS say there are no previous runs?
 
-**Reverify HTTPS** uses saved renewal evidence. For a *new* Secret or endpoint, use **TLS Toolbox → TLS Doctor**. See [local guide](LOCAL-TEST.md).
+**Reverify HTTPS** uses saved renewal evidence. For a *new* Secret or endpoint, use **TLS Toolbox → TLS Doctor**. See the [installation and verification guide](INSTALLATION.md).
 
 ### Does exported Prometheus data automatically appear in Prometheus?
 
 No. KAORI saves a local **.prom** textfile with aggregate audit counts. A separately approved textfile collector or equivalent component must ingest it and keep it refreshed.
 
-### Can I use KAORI on production now?
+### Can KAORI be used in a production environment?
 
-The repository currently contains a development preview on a feature branch. Offline regression tests and a passing CI badge do not constitute real-cluster acceptance or authorization for production writes. Follow [release checklist](RELEASE-CHECKLIST.md), security review and your change governance.
+KAORI `v0.1.0` is publicly released source code, not a managed service or certified deployment. Use it only with appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
 
 ### Where is the full CLI argument list?
 
