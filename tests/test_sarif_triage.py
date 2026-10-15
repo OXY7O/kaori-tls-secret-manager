@@ -18,9 +18,10 @@ def sample(rule="py/clear-text-logging-sensitive-data", score="8.1"):
     return {
         "version": "2.1.0",
         "runs": [{
-            "tool": {"driver": {"name": "CodeQL", "rules": [{
-                "id": rule, "properties": {"security-severity": score}
-            }]}},
+            "tool": {"driver": {"name": "CodeQL", "rules": []},
+                     "extensions": [{"rules": [{
+                         "id": rule, "properties": {"security-severity": score}
+                     }]}]},
             "results": [{
                 "ruleId": rule,
                 "message": {"text": "sensitive fixture must NOT enter metadata index"},
