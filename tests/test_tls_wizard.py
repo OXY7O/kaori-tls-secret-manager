@@ -434,16 +434,19 @@ class WizardTests(unittest.TestCase):
         self.assertIn("  CERTIFICATE MANAGER", out.getvalue())
 
     def test_brand_falls_back_cleanly_when_png_missing(self):
-        from contextlib import redirect_stdout
         from io import StringIO
+        class TtyBuffer(StringIO):
+            def isatty(self):
+                return True
+        output = TtyBuffer()
         with patch.object(w, "BRAND_LOGO_FILE", Path("/nonexistent/kaori-logo.png")), \
              patch.object(w, "USE_COLOR", True), \
-             patch.object(w.sys.stdout, "isatty", return_value=True), \
-             patch.dict(w.os.environ, {"TERM_PROGRAM": "iTerm.app"}, clear=False), \
-             redirect_stdout(StringIO()) as out:
+             patch.object(w.sys, "stdout", output), \
+             patch.dict(w.os.environ, {"TERM_PROGRAM": "iTerm.app"}, clear=False):
             w.brand_banner()
-        self.assertIn("KAORI TLS", out.getvalue())
-        self.assertNotIn("\x1b]1337", out.getvalue())
+        self.assertIn("KAORI TLS", output.getvalue())
+        self.assertIn("    .-----------.", output.getvalue())
+        self.assertNotIn("\x1b]1337", output.getvalue())
 
     def test_toolbox_menu_help_never_checks_cluster(self):
         from contextlib import redirect_stdout
