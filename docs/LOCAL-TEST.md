@@ -1,4 +1,4 @@
-# Local laptop test — original KAORI UI + full CRUD
+# Local installation and validation — KAORI TLS Management
 
 ## Requirements
 
@@ -15,11 +15,9 @@ mkdir -p ~/workspace
 cd ~/workspace
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
-git fetch origin
-git switch --track origin/feat/crud-and-repo-migration
 ```
 
-A later update is just `git pull --ff-only origin feat/crud-and-repo-migration`. Do not use `--track` on an already-existing local branch.
+A later update from the default branch is `git pull --ff-only origin main`. For reproducible testing, check out a versioned release tag when available.
 
 ## Offline validation — no Kubernetes connection
 
@@ -34,7 +32,7 @@ bash scripts/tls-secret-manager.sh crud --help
 bash scripts/tls-secret-manager.sh wizard --help
 ```
 
-For the **same original KAORI menu**, run in an interactive terminal:
+For the **guided KAORI interface**, run in an interactive terminal:
 
 ```bash
 bash scripts/tls-secret-manager.sh wizard --plain
@@ -94,12 +92,12 @@ bash scripts/tls-secret-manager.sh crud --context APPROVED_DEV_CONTEXT plan-dele
 ```bash
 cd ~/workspace/kaori-tls-secret-manager
 git fetch origin
-git pull --ff-only origin feat/crud-and-repo-migration
+git pull --ff-only origin main
 python3 -m unittest discover -s tests -v
 ```
 
-The code remains on a Draft PR until security, end-to-end DEV/UAT and operator sign-off are complete.
+Community prerelease source is published from `main`; **production acceptance remains pending** independent security review, Kubernetes DEV/UAT, real encrypted restore and owner sign-off. Offline PASS is not production authorization.
 
 ## Simplified local Create/Delete workflow
 
-Start the original menu with `bash scripts/tls-secret-manager.sh wizard`, select **Create TLS Secret** or **Delete TLS Secret**, follow the on-screen context/namespace/Secret prompts, and review the read-only plan. Press Enter to keep a plan only, or type PROCEED to enter the guided confirmation phase. Delete auto-reuses or offers to generate a protected age recovery identity, then requires UNUSED and the exact DELETE namespace/secret phrase. The immutable Plan ID is checked automatically. Before deletion the original Secret is encrypted and the backup is verified by decrypting it locally. The optional signed CLI flow is not needed for single-operator interactive usage. See [DELETE-TLS-SECRET-SOP.md](DELETE-TLS-SECRET-SOP.md).
+Start the guided interface with `bash scripts/tls-secret-manager.sh wizard`, select **Create TLS Secret** or **Delete TLS Secret**, follow the on-screen context/namespace/Secret prompts, and review the read-only plan. Press Enter to keep a plan only, or type PROCEED to enter the guided confirmation phase. Delete auto-reuses or offers to generate a protected age recovery identity, then requires UNUSED and the exact DELETE namespace/secret phrase. The immutable Plan ID is checked automatically. Before deletion the original Secret is encrypted and the backup is verified by decrypting it locally. The optional signed CLI flow is not needed for single-operator interactive usage. See [DELETE-TLS-SECRET-SOP.md](DELETE-TLS-SECRET-SOP.md).
