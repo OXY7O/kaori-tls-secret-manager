@@ -236,6 +236,7 @@ class EndpointValidationTests(unittest.TestCase):
             value = m.probe_https_endpoint("www.example.test", "10.0.0.1", 8443,
                                           ca_bundle="/trusted/root.pem")
         self.assertEqual(tls_context.server_hostname, "www.example.test")
+        self.assertEqual(tls_context.minimum_version, m.ssl.TLSVersion.TLSv1_2)
         connect.assert_called_once_with(("10.0.0.1", 8443), timeout=12)
         factory.assert_called_once_with(cafile="/trusted/root.pem")
         self.assertEqual(value["fingerprint"], m.digest(b"dummy-der"))

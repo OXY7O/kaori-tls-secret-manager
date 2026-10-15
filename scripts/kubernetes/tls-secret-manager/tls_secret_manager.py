@@ -953,6 +953,8 @@ def read_endpoint_targets(path, plan, staged=None):
 def probe_https_endpoint(host, connect_host, port, ca_bundle=None, timeout=12):
     """TLS validation uses Python's verified SSL context: CA chain + hostname + SNI."""
     ctx = ssl.create_default_context(cafile=ca_bundle)
+    # Defense in depth: do not negotiate obsolete TLS 1.0/1.1 protocols.
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     try:
         with socket.create_connection((connect_host, port), timeout=timeout) as raw:
             with ctx.wrap_socket(raw, server_hostname=host) as tls:
