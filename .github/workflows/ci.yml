@@ -56,7 +56,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(tr -d '\\r\\n' < VERSION)"
+          VERSION="$(sed -n '1p' VERSION)"
           test "${VERSION}" = "0.1.0-rc.1"
           test -f docs/releases/v0.1.0-rc.1.md
           test -f assets/kaori-logo.png
@@ -74,7 +74,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG="v$(tr -d '\\r\\n' < VERSION)"
+          TAG="v$(sed -n '1p' VERSION)"
           if gh release view "${TAG}" >/dev/null 2>&1; then
             echo "Prerelease ${TAG} already exists; do not rewrite immutable release."
             exit 0
