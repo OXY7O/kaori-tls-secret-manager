@@ -1,35 +1,42 @@
-# Security policy — KAORI TLS Secret Manager
+# Security Policy
 
-**Pre-release prototype: no production security assurance.** This project is a Kubernetes
-Secret management utility; compromise or misuse may expose private keys or disrupt TLS.
+KAORI TLS Certificate Manager operates on sensitive Kubernetes TLS Secret material. Please treat credentials, kubeconfigs, certificate private keys, approval evidence, recovery identities and operational plans as confidential.
 
-## Responsible operations
+## Supported versions
 
-- Manage only authorized Kubernetes contexts and approved namespaces.
-- Keep `kubeconfig`, approver signing keys, PEM private keys, evidence, encrypted backups and
-  plan/journal files outside the source checkout and out of public Git.
-- **Interactive single-operator Create/Delete:** intentionally uses a local TTY, typed exact action/target, immutable Plan ID and—for Delete—explicit no-external-consumers attestation. No external signature is required for this intended local usage.
-- **Optional non-interactive signed approval mode:** continues to require an independent, root-anchored approver key. Plan IDs are integrity identifiers, not digital signatures. Keep signed approvals separate from single-operator interactive mode.
-- Use least-privilege RBAC: scoped get/list for inventory and preflight; create/update/delete
-  privileges only for approved operator identities in a controlled environment.
-- Any API timeout, UID/resourceVersion drift, failed backup, unknown dependency, or uncertain
-  journal status is **STOP**; reconcile manually before a new approved plan. Never blind retry.
-- Read-only discovery may access TLS Secret payloads in memory to evaluate fingerprints.
-  The CLI never intentionally renders or writes `tls.key` into reports.
-- Server-side UID/RV delete preconditions and update resourceVersion conflicts are mandatory,
-  not substitutes for change authorization, backup/restore or endpoint health checks.
-- Ingress, Pod and Gateway API scans cannot prove absence of consumers outside their scope.
-  The single operator must explicitly attest that no external consumers remain; this human assertion is not a substitute for automated dependency checks. A separately signed owner attestation is part of the optional enterprise policy, not the interactive default.
+| Source | Security support |
+| --- | --- |
+| Community prerelease (**0.1.0-rc.1**) | Best-effort review only; **no production security assurance** |
+| Published stable releases | None yet; supported versions will be listed here when released |
 
-## Known limitations before a stable production release
+Offline tests do not establish real-cluster acceptance. There is currently **no guaranteed security response SLA, embargo policy or production support window**.
 
-- No real Kubernetes DEV/UAT acceptance evidence exists for this development branch.
-- The historical multi-target renewal, selective rollback and interactive wizard have been ported into the public development branch, but **not tested on real Kubernetes DEV/UAT** after migration.
-- The standalone CRUD `update` action is an additional **single-target same-SAN** path; the original renewal wizard remains available and retains its own safeguards.
-- No automated rollback, bulk deletion, certificate issuance or unattended writes.
-- No stable security support window, published release artifact or tested multi-platform installer.
-- Server/kubectl version compatibility and encrypted backup restore are not yet validated.
+## Report a vulnerability privately
 
-Report potential vulnerabilities privately to maintainers; do **not** file tickets containing
-real private keys, kubeconfig data, TLS Secret payloads, public endpoints needing disclosure,
-or evidence from internal clusters.
+**Do not open a public issue or pull request that discloses an exploitable weakness, real cluster identifiers, PEM private keys or attack evidence.**
+
+1. If GitHub **private vulnerability reporting** is enabled for this repository, use **Security → Advisories → Report a vulnerability** on the [repository](https://github.com/OXY7O/kaori-tls-secret-manager) and submit a minimal sanitized reproduction.
+2. If that feature is unavailable, contact a repository maintainer **through a private method listed on their GitHub profile** before sharing details. Do not publish an exploit just because a private channel is temporarily unavailable.
+3. Describe the affected version/commit, preconditions, impact and expected behavior, and use synthetic fixtures wherever possible. **Never transmit a real recovery identity or private key.**
+
+Maintainers will assess reports and coordinate a fix/disclosure when possible; no specific response time is promised.
+
+## Operator security expectations
+
+- Use only an authorized kubeconfig context and minimum required namespace-scoped RBAC.
+- Do not store private evidence, Kubernetes Secret data, age recovery identities, signed approvals, kubeconfig or real PEM material in the repository or public CI artifacts.
+- Keep private workspaces outside the source checkout, with restrictive permissions. Backups encrypted with age are not recoverable if the necessary identity is lost; maintain independent secure custody.
+- The normal **single-operator interactive wizard** uses deliberate, local human confirmation. Create and Delete do **not** require separate detached signature files in this mode.
+- The **non-interactive enterprise workflow** supports independent signed approval and a protected approver public trust anchor; do not bypass its trust boundary.
+- Treat unknown API results, context or resource identity drift, RBAC gaps, failed backups and uncertain dependency scans as **STOP/HOLD**. Reconcile before taking further action; never blindly retry a mutation.
+- Delete requires live API UID/resourceVersion preconditions plus dependency/owner checks. Ingress, Pod and Gateway scans do **not** prove that external consumers are absent; the operator must review them separately and explicitly attest to their absence.
+- A successful readback of stored TLS Secret material does **not** prove that an endpoint or old load balancer presents that certificate. Confirm SNI, trust and the served fingerprint separately.
+
+## Current limitations
+
+- The complete application is distributed from `main` as a prerelease and has not completed independent security/privacy review and real DEV/UAT acceptance after transfer.
+- Encrypted backup **restore on real infrastructure** and compatibility across kubectl/Kubernetes combinations are not yet release-accepted.
+- No automated bulk Delete, force-delete mode, ACME issuance, unattended writes or automatic rollback.
+- The advanced renewal workflow and single-target CRUD Update have different operational interfaces; read the [operator guide](docs/OPERATOR-GUIDE.md) before using either.
+
+For contribution rules and non-sensitive bug reports, see [CONTRIBUTING.md](CONTRIBUTING.md) and [SUPPORT.md](SUPPORT.md).

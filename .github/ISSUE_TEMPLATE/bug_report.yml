@@ -1,0 +1,70 @@
+name: Bug report
+description: Report a non-sensitive reproducible defect
+title: "bug: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping KAORI. Do NOT upload kubeconfig, certificate private keys, recovery identities, production logs, real plan/journal files, internal domains or exploit details. Use synthetic examples only. Security vulnerabilities belong in private disclosure (SECURITY.md).
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What failed and what was the impact?
+      placeholder: A read-only inventory incorrectly shows ...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction (sanitized)
+      description: Steps, safely redacted command arguments and synthetic fixtures
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Observed behavior
+      description: Include status or error text only after removing sensitive identifiers
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Source version
+      placeholder: 0.1.0-dev / commit SHA
+  - type: input
+    id: environment
+    attributes:
+      label: OS / Python version
+      placeholder: Ubuntu 24.04, Python 3.12
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Affected area
+      options:
+        - Wizard / UI
+        - Inventory / Inspect
+        - Toolbox / Metrics / Doctor
+        - Renew / Rollback
+        - Create
+        - Update
+        - Delete / HOLD
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: This report contains no credentials, keys or private cluster evidence
+          required: true

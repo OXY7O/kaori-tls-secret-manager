@@ -7,7 +7,7 @@ to inspect certificate health; outputs are saved privately on the operator lapto
 ## Metrics export (Toolbox > 5)
 
 1. Open the KAORI wizard: `bash scripts/tls-secret-manager.sh wizard`.
-2. Select **3 TLS Toolbox**, then **5 Metrics export**.
+2. Select **TLS Toolbox**, then **Metrics export**.
 3. Select an approved Kubernetes context and one or more namespaces.
 4. Press Enter for the default certificate expiration warning threshold (**30 days**) or enter another integer (0–3650).
 5. Review **Prometheus cluster label**. When context is `admin@k8s-dev`,
@@ -58,7 +58,7 @@ the context name.
 
 ## TLS Doctor (Toolbox > 4)
 
-1. Select **3 TLS Toolbox**, then **4 TLS Doctor**.
+1. Select **TLS Toolbox**, then **TLS Doctor**.
 2. Choose the approved Kubernetes context and namespace(s).
 3. Use the default expiry warning threshold (30 days) or enter a custom value.
 4. Select **one TLS Secret** from the displayed list.
