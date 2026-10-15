@@ -99,7 +99,8 @@ def validate_stored_tls(obj, warn_days=30, now=None, ca_bundle=None):
                     command = ["openssl", "verify", "-CAfile", str(ca_bundle)]
                     if len(leaf_parts) > 1:
                         intermediate = Path(tmp) / "untrusted-chain.pem"
-                        intermediate.write_bytes(b"".join(leaf_parts[1:]))
+                        with os.fdopen(os.open(intermediate, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as stream:
+                            stream.write(b"".join(leaf_parts[1:]))
                         command.extend(["-untrusted", str(intermediate)])
                     run([*command, str(path)])
                 output["trust_status"] = "TRUSTED"
