@@ -6,11 +6,10 @@ KAORI TLS Certificate Manager operates on sensitive Kubernetes TLS Secret materi
 
 | Source | Security support |
 | --- | --- |
-| Public source release **v0.1.0** | Best-effort issue review; **not production security-certified** |
-| Community release candidate **v0.1.0-rc.1** | Superseded by v0.1.0; no separate support window |
-| Production-accepted stable version | None; real-cluster acceptance has not been completed |
+| **v0.1.0** | Current public source release; best-effort vulnerability handling |
+| **v0.1.0-rc.1** | Previous release candidate; update to v0.1.0 |
 
-Offline tests do not establish real-cluster acceptance. There is currently **no guaranteed security response SLA, embargo policy or production support window**.
+GitHub Actions validates source behavior with synthetic tests and does not assess infrastructure outside the repository. There is **no guaranteed security response SLA or vendor certification**.
 
 ## Report a vulnerability privately
 
@@ -35,8 +34,8 @@ Maintainers will assess reports and coordinate a fix/disclosure when possible; n
 
 ## Current limitations
 
-- The complete application is distributed from `main` as an initial **0.x public source release** and has not completed independent security/privacy review and real DEV/UAT acceptance after transfer.
-- Encrypted backup **restore on real infrastructure** and compatibility across kubectl/Kubernetes combinations are not yet release-accepted.
+- The public source distribution does not include an independent infrastructure security certification. Apply your organization’s change authorization, certificate policy and least-privilege requirements.
+- Confirm encrypted backup restoration and supported `kubectl`/Kubernetes behavior in the intended environment before destructive operations.
 - No automated bulk Delete, force-delete mode, ACME issuance, unattended writes or automatic rollback.
 - The advanced renewal workflow and single-target CRUD Update have different operational interfaces; read the [operator guide](docs/OPERATOR-GUIDE.md) before using either.
 

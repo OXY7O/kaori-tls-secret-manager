@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Offline CI" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Quality Gate" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
   <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0"><img alt="Release v0.1.0" src="https://img.shields.io/badge/release-v0.1.0-blue"></a>
 </p>
@@ -62,7 +62,7 @@ sudo apt install -y git python3 openssl age ca-certificates
 
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
-git checkout v0.1.0  # immutable first release; use main for ongoing development
+git checkout v0.1.0  # pin the published release; omit for the latest source
 
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
@@ -108,7 +108,7 @@ All entrypoints use the same repository; no second checkout is required.
 | `bash scripts/tls-secret-manager.sh wizard --plain` | Accessible plain-text wizard |
 | `bash scripts/tls-secret-manager.sh doctor` | Check local dependencies; no Kubernetes API access |
 | `bash scripts/tls-secret-manager.sh crud --help` | Guarded CRUD command help |
-| `bash scripts/tls-secret-manager.sh --help` | Historical renewal-engine command help |
+| `bash scripts/tls-secret-manager.sh --help` | Renewal operation help |
 
 **Guarded lifecycle operations** (prefix: **bash scripts/tls-secret-manager.sh crud --context CONTEXT**):
 
@@ -124,7 +124,7 @@ The planning commands are read-only with respect to Kubernetes and store private
 
 **Advanced renewal operations:** `discover`, `reconcile`, `inspect`, `verify-source`, `plan`, `renew`, `verify`, `verify-endpoints`, `rollback`, `rollback-target`, `report`. For argument details, invoke **--help** and see the [operator guide](docs/OPERATOR-GUIDE.md) and [example target CSV files](scripts/kubernetes/tls-secret-manager/examples/).
 
-**Toolbox:** [TLS Doctor and Prometheus metrics usage](docs/TOOLBOX-METRICS-DOCTOR.md) covers read-only standalone commands, metrics labels, private output directories and endpoint mismatches. [Local testing](docs/LOCAL-TEST.md) covers offline checks and trial contexts.
+**Toolbox:** [TLS Doctor and Prometheus metrics usage](docs/TOOLBOX-METRICS-DOCTOR.md) covers read-only standalone commands, metrics labels, private output directories and endpoint mismatches. [Installation and verification](docs/INSTALLATION.md) covers setup, checks and authorized cluster access.
 
 ## Safety by design
 
@@ -137,21 +137,21 @@ The planning commands are read-only with respect to Kubernetes and store private
 
 See the [security policy](SECURITY.md) and [architecture](docs/ARCHITECTURE.md). Please report suspected vulnerabilities **privately**, not in public issues.
 
-## Release status and compatibility
+## Release and compatibility
 
-**Version:** `v0.1.0` — **first public Semantic Versioning source release**. Use the immutable [GitHub Release](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0) tag to reproduce an installation, or `main` for the latest source. This is a **0.x initial-development release**, not a declaration of production readiness, stable APIs, or a security support SLA. A second repository and a pip package are not required.
+**Current release:** [`v0.1.0`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
 
-- **Validated in CI:** Python 3.12 on Ubuntu Linux; shell/Python syntax, offline regression, read-only launcher smoke checks and no-cluster-access assertion.
-- **Expected runtime:** Python 3.10+, Bash, `kubectl`, OpenSSL and `age` on Linux/WSL; exact Kubernetes/kubectl combinations are not yet independently certified.
+- **Automated quality:** GitHub Actions **Quality Gate** checks syntax, regression tests, command entrypoints and absence of cluster credentials (Ubuntu, Python 3.12).
+- **Runtime requirements:** Linux/WSL, Python 3.10+, Bash, OpenSSL and `age`; add `kubectl` and authorized RBAC for Kubernetes operations. Platform and cluster compatibility depend on your environment.
 - **Not provided:** self-contained binaries, Docker images, Homebrew packages, ACME issuance, continuous reconciliation controller, or unattended destructive operations.
-- **Acceptance boundary:** CI passing is **not** evidence of live-cluster DEV/UAT, endpoint health, verified backup restoration, signed production approval or a production security support SLA.
+- **Operational responsibility:** Before a write, verify scope, permissions, workload dependencies, encrypted recovery and the served HTTPS certificate when applicable. Automated CI does not exercise external Kubernetes environments.
 
-Review [release notes](docs/releases/v0.1.0.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and the [production acceptance checklist](docs/RELEASE-CHECKLIST.md). Always use an approved test context before any Kubernetes mutation.
+Read the [release notes](docs/releases/v0.1.0.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
 
 ## Documentation & community
 
-- **Users:** [Local installation and tests](docs/LOCAL-TEST.md) · [Operator guide](docs/OPERATOR-GUIDE.md) · [Safe Delete SOP](docs/DELETE-TLS-SECRET-SOP.md) · [Toolbox & metrics](docs/TOOLBOX-METRICS-DOCTOR.md)
-- **Maintainers:** [Architecture](docs/ARCHITECTURE.md) · [Release checklist](docs/RELEASE-CHECKLIST.md) · [Changelog](CHANGELOG.md)
+- **Users:** [Installation and verification](docs/INSTALLATION.md) · [Operator guide](docs/OPERATOR-GUIDE.md) · [Safe Delete SOP](docs/DELETE-TLS-SECRET-SOP.md) · [Toolbox & metrics](docs/TOOLBOX-METRICS-DOCTOR.md)
+- **Maintainers:** [Architecture](docs/ARCHITECTURE.md) · [Release quality policy](docs/RELEASE-POLICY.md) · [Changelog](CHANGELOG.md)
 - **Community:** [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Support](SUPPORT.md) · [Security policy](SECURITY.md) · [Issues](https://github.com/OXY7O/kaori-tls-secret-manager/issues) · [Pull requests](https://github.com/OXY7O/kaori-tls-secret-manager/pulls)
 
 Contributions, bug reports, accessibility improvements and sanitized synthetic regression cases are welcome. **Never attach internal hostnames, raw TLS material or production evidence to public issues.**
