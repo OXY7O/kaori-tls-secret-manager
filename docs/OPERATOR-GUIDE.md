@@ -1,6 +1,9 @@
 # Operator guide: prototype, NOT authorized for production
 
-For a step-by-step, role-separated procedure suitable for handing off to other operators, use **[TLS Secret Delete — Operator SOP](DELETE-TLS-SECRET-SOP.md)**. It covers the one-time approver trust/age recovery setup, per-deletion approval and plan, resuming an existing plan by CLI, verification, and failure handling.
+The normal **one-person interactive** operation is documented in [Single-Operator Delete SOP](DELETE-TLS-SECRET-SOP.md): launch the wizard, review plan, type PROCEED, confirm UNUSED, exact action/target and Plan ID, and let KAORI handle encrypted backup/verification automatically.
+
+**The signed-approval examples below document an optional advanced/non-interactive workflow only.** They are not a prerequisite for menu 10 Create or menu 11 Delete in the interactive wizard. No role handoff or signature files are required in the one-person workflow.
+
 
 ## Read-only / create plan / update plan / delete plan
 
