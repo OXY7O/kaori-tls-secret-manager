@@ -99,6 +99,15 @@ class TLSInventoryTests(unittest.TestCase):
             inv.write_overview_reports(self.root, rows, unresolved,
                                        context="development")
 
+    def test_report_file_remains_private_with_permissive_umask(self):
+        import os
+        previous_umask = os.umask(0)
+        try:
+            path = inv._write_exclusive(self.root / "permission-test.txt", "synthetic metadata")
+        finally:
+            os.umask(previous_umask)
+        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+
     def test_advisory_candidates_do_not_allow_invalid_or_future(self):
         rows, _ = inv.join_discovery(self.inventory, self.references)
         selected = inv.candidates(rows, [1, 1, 2])

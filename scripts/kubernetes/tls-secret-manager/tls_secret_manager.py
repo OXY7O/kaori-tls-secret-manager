@@ -80,7 +80,10 @@ def cert_details(pem):
     leaf = chunks[0]
     with tempfile.TemporaryDirectory() as tmp:
         certfile = Path(tmp) / 'leaf.pem'
-        certfile.write_bytes(leaf)
+        # Public certificate material, but avoid a creation-time permission gap.
+        fd = os.open(certfile, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(leaf)
         out = run(['openssl', 'x509', '-in', str(certfile), '-noout', '-subject', '-issuer', '-startdate', '-enddate', '-ext', 'subjectAltName', '-fingerprint', '-sha256']).decode()
         pub_der = run(['openssl', 'x509', '-in', str(certfile), '-pubkey', '-noout'])
     attrs = {}

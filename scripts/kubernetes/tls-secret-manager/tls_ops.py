@@ -34,16 +34,18 @@ def atomic_evidence(root, stem, rows, *, fields=None):
     location = root / name
     location.mkdir(mode=0o700)
     path = location / ("results.csv" if fields else "results.json")
-    if fields:
-        with path.open("x", newline="", encoding="utf-8") as stream:
+    # The evidence directory is private; create each file private as well,
+    # even if the caller's umask is unexpectedly permissive.
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(path, flags, 0o600)
+    with os.fdopen(fd, "w", newline="", encoding="utf-8") as stream:
+        if fields:
             writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(rows)
-    else:
-        with path.open("x", encoding="utf-8") as stream:
+        else:
             json.dump(rows, stream, indent=2, ensure_ascii=False)
             stream.write("\n")
-    path.chmod(0o600)
     return path
 
 
@@ -92,11 +94,13 @@ def validate_stored_tls(obj, warn_days=30, now=None, ca_bundle=None):
                 with tempfile.TemporaryDirectory() as tmp:
                     leaf_parts = pem_leaves(leaf)
                     path = Path(tmp) / "leaf.pem"
-                    path.write_bytes(leaf_parts[0])
+                    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as stream:
+                        stream.write(leaf_parts[0])
                     command = ["openssl", "verify", "-CAfile", str(ca_bundle)]
                     if len(leaf_parts) > 1:
                         intermediate = Path(tmp) / "untrusted-chain.pem"
-                        intermediate.write_bytes(b"".join(leaf_parts[1:]))
+                        with os.fdopen(os.open(intermediate, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as stream:
+                            stream.write(b"".join(leaf_parts[1:]))
                         command.extend(["-untrusted", str(intermediate)])
                     run([*command, str(path)])
                 output["trust_status"] = "TRUSTED"
@@ -496,9 +500,8 @@ def cli():
             # Offline inventory replay is intentionally unsupported: it could
             # mint a misleading fresh audit timestamp for stale data.
             prom = path.with_name("kaori_tls.prom")
-            with prom.open("x", encoding="utf-8") as f:
+            with os.fdopen(os.open(prom, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as f:
                 f.write(text)
-            prom.chmod(0o600)
             print(f"METRICS: {prom}")
             print(f"EVIDENCE: {path}")
             return 0
