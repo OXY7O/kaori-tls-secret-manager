@@ -9,7 +9,7 @@ Repository documents and templates live in Git. Some repository-wide GitHub sett
 
 **Suggested GitHub Topics:** `kubernetes`, `tls`, `certificates`, `cli`, `python`, `devops`, `sre`, `security`, `certificate-management`, `kubernetes-secrets`, `open-source`.
 
-**Project identity:** KAORI TLS Certificate Manager. The GitHub repository remains **kaori-tls-secret-manager** for continuity; no name change is required to show the product name in README. Use **assets/kaori-mark.svg** for project mark and **assets/kaori-logo.svg** for the full wordmark.
+**Project identity:** KAORI TLS Certificate Manager. The GitHub repository remains **kaori-tls-secret-manager** for continuity; no name change is required to show the product name in README. Use **assets/kaori-mark.png** for project mark and **assets/kaori-logo.png** for the full wordmark.
 
 ## Recommended issue labels
 
