@@ -26,7 +26,7 @@ Delete takes an **encrypted backup** and locally verifies that it can be decrypt
 
 ### Why does Reverify HTTPS say there are no previous runs?
 
-Main menu **Reverify HTTPS** uses saved renewal evidence. For a *new* Secret or endpoint, use **TLS Toolbox → TLS Doctor**. See [local guide](LOCAL-TEST.md).
+**Reverify HTTPS** uses saved renewal evidence. For a *new* Secret or endpoint, use **TLS Toolbox → TLS Doctor**. See [local guide](LOCAL-TEST.md).
 
 ### Does exported Prometheus data automatically appear in Prometheus?
 
