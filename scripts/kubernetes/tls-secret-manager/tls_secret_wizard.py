@@ -537,12 +537,18 @@ def display_tls_overview(rows, unresolved, *, title="UNIFIED TLS DISCOVERY",
 def export_renewal_candidates(rows, output_dir):
     """Generate an advisory CSV only. A new live discovery and plan are mandatory."""
     import tls_inventory
-    header("RENEWAL CANDIDATE SHORTLIST (READ ONLY)")
-    hint("Candidate selection never executes plan, renew, rollback, or any Kubernetes write.")
-    hint("Only VALID / EXPIRING / EXPIRED entries are eligible; INVALID/NOT_YET_VALID need investigation.")
+    header("RENEWAL CANDIDATE EXPORT / READ ONLY")
+    inventory_section("SCOPE")
+    print("  Creates an advisory CSV from the displayed Inventory results.")
+    print("  It does not create a renewal plan or change Kubernetes Secrets.")
+    print("  Original full-inventory CSV, JSON and Markdown reports stay unchanged.")
+    print("  Eligible: VALID, EXPIRING and EXPIRED. Investigate other states first.")
+    inventory_section("AVAILABLE CANDIDATES")
     for i, row in enumerate(rows, 1):
         print(f"  {i:>3}. {row['namespace']}/{row['secret_name']} "
-              f"[{row['status']}] {row['ingress_hostnames']}")
+              f"[{row['status']}]")
+        print(f"       Ingress: {row['ingress_hostnames'] or '-'}")
+    inventory_section("SELECTION")
     raw = ask("Candidate numbers (1,3), ALL, or Enter to cancel", "")
     if not raw:
         hint("No candidate shortlist created.")
@@ -557,12 +563,16 @@ def export_renewal_candidates(rows, output_dir):
               "Choose valid comma-separated candidate numbers")
         indices = [int(p) for p in parts]
     selected = tls_inventory.candidates(rows, indices)
-    print(f"  {len(selected)} selected: "
-          + ", ".join(f"{r['namespace']}/{r['secret_name']}" for r in selected))
+    inventory_section("REVIEW SELECTION")
+    print(f"  Selected candidates: {len(selected)}")
+    for candidate in selected:
+        print(f"  - {candidate['namespace']}/{candidate['secret_name']}")
+    print()
     check(ask("Type CANDIDATES to export advisory targets only") == "CANDIDATES",
           "Candidate export not confirmed")
     destination = Path(output_dir) / "renewal-candidates.csv"
     tls_inventory.write_candidates(destination, selected)
+    inventory_section("EXPORT COMPLETE")
     file_hint("Advisory candidates (no plan/no write)", destination)
     hint("Start main menu 5 (Renew TLS) separately; a FRESH discovery, plan and approval are required.")
     return destination
@@ -660,9 +670,6 @@ def tls_discovery_dashboard(args):
                 warning("No candidates match the current filter. Reset or change filters.")
                 continue
             try:
-                inventory_section("EXPORT RENEWAL CANDIDATES")
-                hint("Exports an advisory shortlist from the displayed rows only.")
-                hint("The original full-inventory reports are never modified.")
                 export_renewal_candidates(shown, report_dir)
             except ValueError as ex:
                 warning(str(ex))
