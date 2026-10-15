@@ -1,5 +1,7 @@
 # Operator guide: prototype, NOT authorized for production
 
+For a step-by-step, role-separated procedure suitable for handing off to other operators, use **[TLS Secret Delete — Operator SOP](DELETE-TLS-SECRET-SOP.md)**. It covers the one-time approver trust/age recovery setup, per-deletion approval and plan, resuming an existing plan by CLI, verification, and failure handling.
+
 ## Read-only / create plan / update plan / delete plan
 
 Prerequisites for any future DEV/UAT: approved namespace, scoped Kubernetes RBAC, trust anchor installed by separate administrator, private workstation with `age`, test certificate/key pair, documented change ticket, and restoration exercise.
