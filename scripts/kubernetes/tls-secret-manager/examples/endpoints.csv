@@ -1,0 +1,4 @@
+# Dummy endpoints only. Replace all values with approved SNI hostnames and destinations.
+namespace,secret_name,hostname,port,connect_host
+app-development,tls-secret,api.example.test,443,
+payments-staging,tls-secret,payments.example.test,443,
