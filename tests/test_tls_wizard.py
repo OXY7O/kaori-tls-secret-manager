@@ -573,6 +573,38 @@ class WizardTests(unittest.TestCase):
                  redirect_stdout(StringIO()):
                 self.assertEqual(w.choose_previous_plan(args), str(path.resolve()))
 
+    def test_tls_doctor_results_are_not_accepted_as_renewal_plan(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "toolkit-reports" / "doctor-example" / "results.json"
+            evidence.parent.mkdir(parents=True)
+            evidence.write_text('{"stored":{"status":"VALID"}}', encoding="utf-8")
+            args = types.SimpleNamespace(workspace=str(root / "empty-renewal-runs"))
+            screen = StringIO()
+            with patch.object(w, "ask", return_value=str(evidence)) as ask, \
+                 patch.object(w, "exec_read", side_effect=AssertionError("No kubectl")), \
+                 patch.object(w, "helper", side_effect=AssertionError("No helper")), \
+                 redirect_stdout(screen):
+                self.assertIsNone(w.reverify_existing_run(args))
+            self.assertEqual(ask.call_count, 1, "Empty history must not trap operator")
+            self.assertIn("diagnostic report, not a renewal-plan.json", screen.getvalue())
+            self.assertIn("Returning to the main menu", screen.getvalue())
+
+    def test_missing_manual_plan_returns_after_one_attempt_when_no_saved_runs(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        with tempfile.TemporaryDirectory() as tmp:
+            args = types.SimpleNamespace(workspace=tmp)
+            screen = StringIO()
+            with patch.object(w, "ask", return_value="/tmp/not-existing-report.json") as ask, \
+                 patch.object(w, "exec_read", side_effect=AssertionError("No kubectl")), \
+                 redirect_stdout(screen):
+                self.assertIsNone(w.choose_previous_plan(args, purpose="reverify"))
+            self.assertEqual(ask.call_count, 1)
+            self.assertIn("No valid renewal-plan.json", screen.getvalue())
+
     def test_validity_report_shows_date_and_days_without_renewal(self):
         rows = [{
             "namespace": "dev", "secret_name": "tls", "status": "EXPIRING",
