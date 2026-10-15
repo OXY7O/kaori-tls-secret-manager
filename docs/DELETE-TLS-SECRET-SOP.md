@@ -26,7 +26,7 @@ If neither exists, the wizard offers to create one. Type SETUP once, then RECOVE
 4. Accept the private evidence directory under ~/k8s-tls-private/crud-runs/ (or choose another directory outside the Git checkout). If KAORI needs a recovery key for the first time, follow the one-time SETUP prompt.
 5. **Step 1/3 (read-only plan):** KAORI checks resource type, controller ownership, configured Kubernetes consumers (Ingress, Gateway, Pods), dependencies, cluster identity and Secret metadata. An unsafe target BLOCKS the operation. It creates a plan containing an immutable Plan ID, valid for **less than 30 minutes**. At this point **nothing has been deleted**.
 6. Press **Enter** to keep the plan only, or type **PROCEED** if you intend to continue to the guided deletion in this same session.
-7. **Step 2/3 (human confirmation):** KAORI asks for UNUSED to confirm you have assessed possible **external** consumers (monitoring, external LB, proxy, integrations, manual mounts). Then type the exact string shown on-screen such as DELETE namespace/secret, and finally type the exact Plan ID. These are the operator's own confirmations, not external approval artifacts.
+7. **Step 2/3 (human confirmation):** KAORI asks for UNUSED to confirm you have assessed possible **external** consumers (monitoring, external LB, proxy, integrations, manual mounts). Then type the exact string shown on-screen, such as DELETE namespace/secret. KAORI binds and validates the immutable Plan ID internally; you do not need to copy it. These are the operator's own confirmations, not external approval artifacts.
 8. **Step 3/3 (one attempted write):** KAORI validates the still-current plan and Kubernetes UID/resourceVersion, rechecks consumers/ownership/fingerprint, automatically produces an age-encrypted backup, **decrypts it locally and checks it matches the original Secret before deleting**, writes an execution journal, performs Kubernetes DELETE with API preconditions, and verifies the Secret is absent.
 9. Read the final status and preserve the output paths. Success is **COMPLETE_ABSENCE_VERIFIED**, not merely a successful kubectl return code.
 
@@ -72,7 +72,7 @@ On the Step 1 prompt, press **Enter** rather than typing PROCEED. That creates a
 - [ ] Kubernetes references and external consumers reviewed
 - [ ] Read-only plan validated and fresh
 - [ ] Protected recovery key exists and a separate secure copy is maintained
-- [ ] UNUSED, exact action/target and Plan ID confirmed by operator
+- [ ] UNUSED and exact action/target confirmed by operator; Plan ID verified automatically
 - [ ] Encrypted backup roundtrip verified by KAORI before Delete
 - [ ] Final status COMPLETE_ABSENCE_VERIFIED and actual Secret NotFound
 - [ ] Plan, journal and encrypted backup retained securely
