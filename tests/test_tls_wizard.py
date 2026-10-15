@@ -284,7 +284,7 @@ class WizardTests(unittest.TestCase):
             self.assertIn(phrase + "  |  Default: Inventory (read-only)", home)
             self.assertRegex(
                 home,
-                r"(?m)^ *4\. Verify HTTPS\n\n *5\. Renew TLS\n"
+                r"(?m)^ *4\. Reverify HTTPS\n\n *5\. Renew TLS\n"
                 r" *6\. Review HOLD\n\n *7\. Run history$",
             )
 
@@ -534,6 +534,44 @@ class WizardTests(unittest.TestCase):
             args = types.SimpleNamespace(workspace=tmp)
             with patch.object(w, "ask", return_value="QUIT"):
                 self.assertIsNone(w.choose_previous_plan(args))
+
+    def test_no_saved_run_enter_returns_without_cluster_requests(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        with tempfile.TemporaryDirectory() as tmp:
+            args = types.SimpleNamespace(workspace=tmp)
+            screen = StringIO()
+            with patch.object(w, "ask", return_value="") as ask, \
+                 patch.object(w, "exec_read", side_effect=AssertionError("No kubectl")), \
+                 patch.object(w, "helper", side_effect=AssertionError("No renewal")), \
+                 redirect_stdout(screen):
+                self.assertIsNone(w.reverify_existing_run(args))
+            self.assertEqual(ask.call_count, 1)
+            self.assertIn("No matching saved renewal runs", screen.getvalue())
+            self.assertIn("TLS Doctor", screen.getvalue())
+            self.assertIn("Enter or type 0/QUIT", screen.getvalue())
+
+    def test_saved_run_selector_accepts_zero_to_cancel(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        with tempfile.TemporaryDirectory() as tmp:
+            args = types.SimpleNamespace(workspace=tmp)
+            with patch.object(w, "ask", return_value="0") as ask, \
+                 redirect_stdout(StringIO()):
+                self.assertIsNone(w.choose_previous_plan(args))
+            self.assertEqual(ask.call_count, 1)
+
+    def test_manual_plan_path_still_works_without_indexed_history(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "renewal-plan.json"
+            path.write_text("{}", encoding="utf-8")
+            args = types.SimpleNamespace(workspace=str(Path(tmp) / "empty-workspace"))
+            with patch.object(w, "ask", return_value=str(path)), \
+                 patch.object(w, "exec_read", side_effect=AssertionError("No kubectl")), \
+                 redirect_stdout(StringIO()):
+                self.assertEqual(w.choose_previous_plan(args), str(path.resolve()))
 
     def test_validity_report_shows_date_and_days_without_renewal(self):
         rows = [{
