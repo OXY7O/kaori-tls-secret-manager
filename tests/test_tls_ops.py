@@ -163,6 +163,35 @@ class TLSOpsTests(unittest.TestCase):
             result = ops.drift_report("ctx", ["dev"])
         self.assertEqual([x["status"] for x in result["results"]], ["MATCH", "MISMATCH"])
 
+    def test_default_metrics_label_from_kubernetes_context(self):
+        self.assertEqual(ops.default_metrics_cluster_label("admin@k8s-dev"),
+                         "k8s-dev")
+        self.assertEqual(ops.default_metrics_cluster_label("k8s-uat"), "k8s-uat")
+        self.assertEqual(ops.default_metrics_cluster_label("arn:aws:eks:dev/cluster"),
+                         "arn_aws_eks_dev_cluster")
+        self.assertRegex(ops.default_metrics_cluster_label("x" * 120),
+                         r"^x{91}-[0-9a-f]{8}$")
+        with self.assertRaisesRegex(helper.Stop, "required"):
+            ops.default_metrics_cluster_label("")
+
+    def test_prometheus_metrics_context_label_is_safe_and_correct(self):
+        rows = [{"status": "VALID", "secret_name": "private-secret"},
+                {"status": "EXPIRING", "secret_name": "other-secret"}]
+        label = ops.default_metrics_cluster_label("admin@k8s-dev")
+        output = ops.prometheus_metrics(rows, label)
+        self.assertIn('cluster="k8s-dev",status="VALID"} 1', output)
+        self.assertIn('cluster="k8s-dev",status="EXPIRING"} 1', output)
+        self.assertNotIn("admin@", output)
+        self.assertNotIn("private-secret", output)
+
+    def test_prometheus_metrics_reject_unsafe_override(self):
+        rows = [{"status": "VALID"}]
+        with self.assertRaisesRegex(helper.Stop, "Invalid cluster label"):
+            ops.prometheus_metrics(rows, 'bad"\\\\nmetric')
+        with self.assertRaisesRegex(helper.Stop, "Invalid cluster label"):
+            ops.prometheus_metrics(rows, "dev cluster")
+
+
     def test_aggregate_prometheus_metrics_do_not_expose_secret_names(self):
         data = [{"status": "EXPIRING", "secret_name": "secret-a"},
                 {"status": "VALID", "secret_name": "secret-b"},
