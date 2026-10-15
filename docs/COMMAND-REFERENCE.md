@@ -1,6 +1,6 @@
 # CLI command reference
 
-KAORI has one supported launcher, **bash scripts/tls-secret-manager.sh**, and two complementary interfaces: an interactive wizard and script-oriented command parsers.
+KAORI has one supported launcher, **bash scripts/tls-secret-manager.sh**, and two complementary interfaces: guided operation and script-oriented command parsers.
 
 ## How command routing works
 
@@ -22,22 +22,12 @@ bash scripts/tls-secret-manager.sh wizard --context APPROVED_CONTEXT \
   --workspace "$HOME/k8s-tls-private"
 ~~~
 
-Wizard options: **--context**, **--workspace**, **--cert**, **--key**, **--ca-bundle**, **--reviewed-holds**, **--review-plan**, **--plain**. With no argument, the wizard uses interactive prompts. At the first menu, **Enter defaults to Inventory**; use **9 Help** and **0 Exit** to explore without initiating discovery.
+Wizard options: **--context**, **--workspace**, **--cert**, **--key**, **--ca-bundle**, **--reviewed-holds**, **--review-plan**, **--plain**. With no argument, the wizard uses interactive prompts. At the first prompt, **Enter defaults to Inventory**; select **Help** or **Exit** to explore without initiating discovery.
 
-| Menu | Function | Notes |
-| --- | --- | --- |
-| 1 | Inventory | TLS Secret discovery |
-| 2 | Expiry audit | Certificate validity |
-| 3 | TLS Toolbox | Diagnostics; includes TLS Doctor and metrics export |
-| 4 | Reverify HTTPS | Requires a previously saved renewal plan |
-| 5 | Renew TLS | Existing selective multi-target renewal flow |
-| 6 | Review HOLD | Read-only hold review from a prior plan |
-| 7 | Run history | Prior plans/journals |
-| 8 | Status guide | Explains READY/HOLD and other statuses |
-| 9 | Help | Menu guidance |
-| 10 | Create TLS Secret | Guided guarded Create |
-| 11 | Delete TLS Secret | Guided guarded Delete |
-| 0 | Exit | No operation |
+**Available guided capabilities:** Inventory, Expiry Audit, TLS Toolbox, Reverify HTTPS, Renew TLS, Review HOLD, Run History, Status Guide, Help, Create TLS Secret, Delete TLS Secret and Exit. Use their displayed names rather than relying on fixed menu numbering.
+
+For general endpoint inspection select **TLS Toolbox → TLS Doctor**. The separate **Reverify HTTPS** operation requires evidence from a saved renewal run.
+
 
 ## Guarded CRUD backend
 
