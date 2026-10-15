@@ -25,7 +25,7 @@
 
 ## Overview
 
-**KAORI TLS Certificate Manager** is an open-source utility for managing Kubernetes Secrets of type **kubernetes.io/tls**. It brings together certificate inventory, expiry audits, trust and HTTPS diagnostics, guarded certificate renewal, and explicit Create/Delete lifecycles in one utility with a guided terminal interface.
+**KAORI TLS Management** is an open-source utility for managing Kubernetes Secrets of type **kubernetes.io/tls**. It brings together certificate inventory, expiry audits, trust and HTTPS diagnostics, guarded certificate renewal, and explicit Create/Delete lifecycles in one utility with a guided terminal interface.
 
 Designed for **human-controlled infrastructure operations**: inspect before changing, bind every mutation to a reviewed target, preserve recovery evidence, and stop on unsafe or ambiguous state. Choose a guided terminal experience or script-oriented commands with JSON output.
 
