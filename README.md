@@ -1,8 +1,22 @@
 # KAORI TLS Secret Manager
 
-**Status: public development-branch prototype; NOT merged or accepted for DEV/UAT. Never use write actions on production clusters.**
+**Status: local integration candidate; NOT yet pushed to the public GitHub branch or accepted for DEV/UAT. Never use write actions on production clusters.**
 
 A vendor-neutral Kubernetes `kubernetes.io/tls` Secret lifecycle manager. This independent bootstrap package now contains guarded **Create**, metadata-only **Read** (Inventory/Inspect), **single-target same-SAN Update**, and governed **Delete**. The previous multi-namespace Renewal/Toolbox/terminal wizard remain in historical private work pending audited, sanitized migration; **this is not yet a complete released application**.
+
+## Laptop testing of the full historical wizard (temporary bridge)
+
+**The original KAORI wizard, Inventory, Toolbox and advanced renewal from private ops-runbooks PR #68 can now be exercised locally** through one launcher, provided that you have access to the historical private work branch. The public repository does not contain the private source. See [complete WSL/Linux steps](docs/LOCAL-LEGACY-TEST.md).
+
+```bash
+# From your new standalone repository (after cloning the private old branch separately):
+export KAORI_LEGACY_DIR="$HOME/workspace/ops-runbooks-tls-archive/scripts/kubernetes/tls-secret-manager"
+bash scripts/kaori-tls-secret-manager.sh doctor
+bash scripts/kaori-tls-secret-manager.sh wizard --plain  # historical full menu
+bash scripts/kaori-tls-secret-manager.sh crud --help      # new CRUD
+```
+
+The bridge is for developer evaluation only; it is not a public source migration, production release, or accepted DEV/UAT. No private source is copied into the standalone project.
 
 ## Current capabilities
 
@@ -53,7 +67,7 @@ Plan files are stored with mode `0600` and exclude raw certificate keys. A separ
 
 Source of truth target: [OXY7O/kaori-tls-secret-manager](https://github.com/OXY7O/kaori-tls-secret-manager). The private `ops-runbooks` repository will ultimately keep the internal SOP and a pinned public-release reference, **not a second active copy of source code**. Prior Git history, cluster references and environment-specific test fixtures must not be copied publicly. Original private GitHub issue/PR history remains archived in its original repository; this package does not include it.
 
-The source currently tracked privately has **not** been moved into this starter. See [migration checklist](docs/MIGRATION.md).
+The archived advanced source remains **outside the public repository** and is available only through the explicit, local-only testing bridge. See [migration checklist](docs/MIGRATION.md).
 
 ## Security
 
@@ -69,3 +83,21 @@ The source currently tracked privately has **not** been moved into this starter.
 ## License
 
 Apache License 2.0; see [LICENSE](LICENSE). Maintainers and contributors should retain required attribution and notices. SPDX identifier: `Apache-2.0`.
+
+## Unified CLI (integration candidate)
+
+The **KAORI** wrapper supports the current CRUD CLI and a read/plan-only temporary menu.
+
+```bash
+bash scripts/kaori-tls-secret-manager.sh --help
+bash scripts/kaori-tls-secret-manager.sh crud --help
+bash scripts/kaori-tls-secret-manager.sh --context approved-dev-context inventory --namespace example
+bash scripts/kaori-tls-secret-manager.sh  # interactive; requires a TTY
+```
+
+Once the sanitized legacy modules have been migrated and regression-tested,
+zero-argument mode launches the original full wizard; `wizard` and `legacy`
+explicitly route to the migrated functionality. Until then they refuse to run
+rather than silently substitute an incomplete renewal implementation. The
+existing Create/Update/Delete mutation commands retain their signed-approval
+and plan-bound protections and **cannot** be invoked from the fallback menu.
