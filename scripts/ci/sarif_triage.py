@@ -47,11 +47,14 @@ def collect(path):
     for run in doc["runs"]:
         driver = ((run.get("tool") or {}).get("driver") or {})
         rules = {rule.get("id"): rule for rule in driver.get("rules", [])}
+        # CodeQL SARIF commonly stores queries in tool.extensions, not driver.rules.
+        for extension in ((run.get("tool") or {}).get("extensions") or []):
+            rules.update({rule.get("id"): rule for rule in extension.get("rules", [])})
         tool = driver.get("name", "unknown")
         for result in run.get("results", []):
             rule_id = result.get("ruleId", "unknown")
             positions = result.get("locations") or []
-            sink = _location((positions[0] or {}).get("location")) if positions else {"path": "", "line": 0}
+            sink = _location(positions[0]) if positions else {"path": "", "line": 0}
             first_flow = ((result.get("codeFlows") or [{}])[0].get("threadFlows") or [{}])[0]
             locations = first_flow.get("locations") or []
             flow = [_location(entry.get("location")) for entry in locations]
