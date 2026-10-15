@@ -21,6 +21,12 @@ A `triage-summary.json` is included in each artifact. The repository-local `scri
 
 **Important:** SARIF is a snapshot of per-run query results, not the GitHub alert lifecycle. Result counts cannot by themselves establish the number of *open* alerts or which alerts were *dismissed*. Upload artifacts are accessible under repository Actions permissions; never upload production certificates, kubeconfigs, TLS keys, or live infrastructure evidence to a public repository.
 
+## GitHub alert lifecycle inventory
+
+On a trusted `main` push, scheduled run, or manual run, after both CodeQL languages finish, the workflow performs a **read-only** GitHub Code Scanning REST API query with a job-specific `security-events: read` token. The `CodeQL Alert Inventory` job prints `CODE_SCANNING_OPEN_SUMMARY` and `CODE_SCANNING_OPEN_ALERT` JSON records for **current open alerts**, with only alert number, state, rule ID, tool, repository-relative location, and line. No messages, query snippets, TLS data, credentials, or free-form alert bodies are copied to logs.
+
+This job does not update, dismiss, or suppress findings. If the API returns an error or lacks authorization, the job fails instead of reporting zero. A green CodeQL analyzer is separate from this live-alert inventory: investigate inventory job failure independently, and never interpret it as zero alerts.
+
 ## Review workflow
 
 1. Open [Security → Code scanning](https://github.com/OXY7O/kaori-tls-secret-manager/security/code-scanning).
