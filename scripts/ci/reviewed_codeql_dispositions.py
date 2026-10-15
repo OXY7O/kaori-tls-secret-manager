@@ -111,9 +111,17 @@ if __name__ == "__main__":
     try:
         main()
     except urllib.error.HTTPError as exc:
-        # Do not print URL, headers, response body or token.
-        print("REVIEWED_DISPOSITION_STOPPED: HTTP " + str(exc.code),
-              file=sys.stderr)
+        # Emit only a fixed category; never expose API response text or tokens.
+        try:
+            message = str(json.loads(exc.read(4096)).get("message", "")).lower()
+        except (ValueError, OSError):
+            message = ""
+        category = ("invalid-comment" if "comment" in message else
+                    "delegated-dismissal" if "delegated" in message else
+                    "invalid-reason" if "reason" in message else
+                    "other-validation")
+        print("REVIEWED_DISPOSITION_STOPPED: HTTP " + str(exc.code) +
+              " [" + category + "]", file=sys.stderr)
         raise SystemExit(1)
     except (ValueError, urllib.error.URLError, OSError) as exc:
         print("REVIEWED_DISPOSITION_STOPPED: " + type(exc).__name__,
