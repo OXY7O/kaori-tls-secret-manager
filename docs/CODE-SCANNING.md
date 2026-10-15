@@ -13,6 +13,14 @@ KAORI TLS Management analyzes **Python source and GitHub Actions workflows** usi
 
 The matrix runs `CodeQL (python)` and `CodeQL (actions)` in separate jobs. The Python scan covers utility modules; the Actions scan checks workflow security patterns including token and untrusted-input usage. Neither requires access to kubeconfig, secrets, cluster endpoints, or production TLS keys.
 
+## Downloadable analysis evidence
+
+Each successful CodeQL matrix job still uploads its findings to **Security → Code scanning**, and also stores the generated SARIF as a short-lived (14-day) GitHub Actions artifact named `codeql-sarif-python` or `codeql-sarif-actions`. From the **KAORI Code Scanning** workflow run, open **Artifacts** to retrieve the per-language ZIP.
+
+A `triage-summary.json` is included in each artifact. The repository-local `scripts/ci/sarif_triage.py` emits machine-readable `SARIF_SUMMARY` and `SARIF_FINDING` log lines for remote auditing without the Code Scanning Alerts API. Printed records contain **rule IDs, severity, code file/line and flow source/sink locations only**; no result messages, extracted literals, secret values, or source snippets. Missing/invalid SARIF aborts the job instead of producing a false zero-finding report.
+
+**Important:** SARIF is a snapshot of per-run query results, not the GitHub alert lifecycle. Result counts cannot by themselves establish the number of *open* alerts or which alerts were *dismissed*. Upload artifacts are accessible under repository Actions permissions; never upload production certificates, kubeconfigs, TLS keys, or live infrastructure evidence to a public repository.
+
 ## Review workflow
 
 1. Open [Security → Code scanning](https://github.com/OXY7O/kaori-tls-secret-manager/security/code-scanning).
