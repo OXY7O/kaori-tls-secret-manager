@@ -21,12 +21,11 @@ Secret management utility; compromise or misuse may expose private keys or disru
 - Ingress, Pod and Gateway API scans cannot prove absence of consumers outside their scope.
   A signed owner attestation is mandatory but must not be treated as proof of safe deletion.
 
-## Known limitations before public release
+## Known limitations before a stable production release
 
-- No real Kubernetes DEV/UAT acceptance evidence exists for this local prototype.
-- The legacy multi-target renewal, wave execution, selective rollback and interactive wizard
-  are **not yet migrated** into the public codebase.
-- Only **single-target same-SAN** Update is implemented in this local starter.
+- No real Kubernetes DEV/UAT acceptance evidence exists for this development branch.
+- The historical multi-target renewal, selective rollback and interactive wizard have been ported into the public development branch, but **not tested on real Kubernetes DEV/UAT** after migration.
+- The standalone CRUD `update` action is an additional **single-target same-SAN** path; the original renewal wizard remains available and retains its own safeguards.
 - No automated rollback, bulk deletion, certificate issuance or unattended writes.
 - No stable security support window, published release artifact or tested multi-platform installer.
 - Server/kubectl version compatibility and encrypted backup restore are not yet validated.
