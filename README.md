@@ -117,11 +117,11 @@ All entrypoints use the same repository; no second checkout is required.
 
 | Command | Purpose |
 | :--- | :--- |
-| \`bash scripts/tls-secret-manager.sh\` | Open the interactive wizard |
-| \`bash scripts/tls-secret-manager.sh wizard --plain\` | Accessible plain-text wizard |
-| \`bash scripts/tls-secret-manager.sh doctor\` | Check local dependencies; no Kubernetes API access |
-| \`bash scripts/tls-secret-manager.sh crud --help\` | Guarded CRUD command help |
-| \`bash scripts/tls-secret-manager.sh --help\` | Historical renewal-engine command help |
+| `bash scripts/tls-secret-manager.sh` | Open the interactive wizard |
+| `bash scripts/tls-secret-manager.sh wizard --plain` | Accessible plain-text wizard |
+| `bash scripts/tls-secret-manager.sh doctor` | Check local dependencies; no Kubernetes API access |
+| `bash scripts/tls-secret-manager.sh crud --help` | Guarded CRUD command help |
+| `bash scripts/tls-secret-manager.sh --help` | Historical renewal-engine command help |
 
 **Guarded CRUD** subcommands (prefix: **bash scripts/tls-secret-manager.sh crud --context CONTEXT**):
 
@@ -135,7 +135,7 @@ All entrypoints use the same repository; no second checkout is required.
 
 The planning commands are read-only with respect to Kubernetes and store private plan/evidence files in **--workspace**, which must be outside the checkout. Mutation commands require a plan, exact Plan ID, target confirmation and either interactive operator-mode authorization or a signed approval record. Update and Delete require an age backup recipient. **Do not substitute a bare kubectl delete command for KAORI's guarded Delete workflow.**
 
-**Advanced renewal engine:** \`discover\`, \`reconcile\`, \`inspect\`, \`verify-source\`, \`plan\`, \`renew\`, \`verify\`, \`verify-endpoints\`, \`rollback\`, \`rollback-target\`, \`report\`. For argument details, invoke **--help** and see the [operator guide](docs/OPERATOR-GUIDE.md) and [example target CSV files](scripts/kubernetes/tls-secret-manager/examples/).
+**Advanced renewal engine:** `discover`, `reconcile`, `inspect`, `verify-source`, `plan`, `renew`, `verify`, `verify-endpoints`, `rollback`, `rollback-target`, `report`. For argument details, invoke **--help** and see the [operator guide](docs/OPERATOR-GUIDE.md) and [example target CSV files](scripts/kubernetes/tls-secret-manager/examples/).
 
 **Toolbox:** [TLS Doctor and Prometheus metrics usage](docs/TOOLBOX-METRICS-DOCTOR.md) covers read-only standalone commands, metrics labels, private output directories and endpoint mismatches. [Local testing](docs/LOCAL-TEST.md) covers offline checks and trial contexts.
 
