@@ -21,7 +21,7 @@ If neither exists, the wizard offers to create one. Type SETUP once, then RECOVE
 ## Each deletion — from one menu
 
 1. Start: bash scripts/tls-secret-manager.sh wizard
-2. Choose **11. Delete TLS Secret**.
+2. Choose **Delete TLS Secret** from the guided operations.
 3. Select the intended **Kubernetes context** and **namespace**; type the **exact Secret name**.
 4. Accept the private evidence directory under ~/k8s-tls-private/crud-runs/ (or choose another directory outside the Git checkout). Recovery-key setup is requested later, only if the Secret is eligible and you confirm a real Delete. HOLD and plan-only leave the local recovery setup untouched.
 5. **Step 1/3 (read-only preflight):** KAORI checks controller ownership, Ingress TLS references, Pod Secret mounts/env/imagePullSecrets and Gateway TLS certificateRefs. If a consumer is detected, KAORI immediately shows **DELETE ON HOLD / READ ONLY**, the names of detected resources, and the local HOLD evidence file; **no executable plan, recovery-key setup, or Kubernetes write occurs**. If discovery fails due to RBAC or API errors, KAORI shows **DEPENDENCY_SCAN_INCOMPLETE** and also holds. Only an eligible target receives an immutable delete plan, valid for under 30 minutes.
@@ -72,7 +72,7 @@ HOLD is not a pause button that can be overridden to force deletion. Resolve the
 
 ### What if I only want to check the target?
 
-On the Step 1 prompt, press **Enter** rather than typing PROCEED. That creates a safe, read-only plan. In the current version, opening menu 11 again creates a **new plan**; do not assume the old plan is resumed. The normal one-person full flow is designed to complete the checks and confirmations in **one menu session**.
+On the Step 1 prompt, press **Enter** rather than typing PROCEED. That creates a safe, read-only plan. In the current version, opening the Delete operation again creates a **new plan**; do not assume the old plan is resumed. The normal one-person full flow is designed to complete the checks and confirmations in **one menu session**.
 
 ### What if the operation stops?
 
@@ -97,6 +97,6 @@ On the Step 1 prompt, press **Enter** rather than typing PROCEED. That creates a
 
 ## Advanced backend mode (optional)
 
-The lower-level non-interactive scripts/tls_crud.py retains signed-approval support for users with an organizational separation-of-duties requirement. **It is not the recommended/default single-operator experience** and should not be needed to use menu 10/11. In that mode, a separate approver, signed JSON and registered trust key are intentionally still required. The original guided renewal engine may have additional review/signature policies for multi-target or externally terminated TLS changes.
+The lower-level non-interactive scripts/tls_crud.py retains signed-approval support for users with an organizational separation-of-duties requirement. **It is not the recommended/default single-operator experience** and should not be needed to use the guided Create/Delete operations. In that mode, a separate approver, signed JSON and registered trust key are intentionally still required. The original guided renewal engine may have additional review/signature policies for multi-target or externally terminated TLS changes.
 
 See Operator Guide (OPERATOR-GUIDE.md), Security (../SECURITY.md) and Local test (LOCAL-TEST.md).
