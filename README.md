@@ -7,9 +7,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Offline CI" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=feat%2Fcrud-and-repo-migration"></a>
+  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Offline CI" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <a href="#release-and-compatibility"><img alt="Preview" src="https://img.shields.io/badge/release-development%20preview-orange"></a>
+  <a href="#release-status-and-compatibility"><img alt="Preview" src="https://img.shields.io/badge/release-development%20preview-orange"></a>
 </p>
 
 <p align="center">
@@ -62,10 +62,6 @@ sudo apt install -y git python3 openssl age ca-certificates
 
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
-
-# Until the first verified release is merged to main, use the implementation branch:
-git fetch origin
-git switch --track origin/feat/crud-and-repo-migration
 
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
@@ -140,11 +136,16 @@ The planning commands are read-only with respect to Kubernetes and store private
 
 See the [security policy](SECURITY.md) and [architecture](docs/ARCHITECTURE.md). Please report suspected vulnerabilities **privately**, not in public issues.
 
-## Release and compatibility
+## Release status and compatibility
 
-**Current source version: 0.1.0-dev (development preview).** The implementation lives on the open feature branch / Draft PR; **main does not yet contain the complete utility**. The historical offline regression suite runs in GitHub Actions, but a successful CI badge is **not** evidence of real-cluster DEV/UAT acceptance, secure release signing, or authorization for production changes.
+**Version:** `0.1.0-rc.1` — **community prerelease (not production-approved)**. Use the source from the repository's **default `main` branch** or an immutable [GitHub prerelease](https://github.com/OXY7O/kaori-tls-secret-manager/releases) archive after publication. You do **not** need a separate development branch, second repository, or Python package installation.
 
-Use the documented Linux/WSL source workflow for evaluation. There is **no published standalone binary, Homebrew package, container image, or supported production release** to install today. See the [release checklist](docs/RELEASE-CHECKLIST.md) for acceptance criteria and [changelog](CHANGELOG.md) for work delivered to the development branch.
+- **Validated in CI:** Python 3.12 on Ubuntu Linux; shell/Python syntax, offline regression, read-only launcher smoke checks and no-cluster-access assertion.
+- **Expected runtime:** Python 3.10+, Bash, `kubectl`, OpenSSL and `age` on Linux/WSL; exact Kubernetes/kubectl combinations are not yet independently certified.
+- **Not provided:** self-contained binaries, Docker images, Homebrew packages, ACME issuance, continuous reconciliation controller, or unattended destructive operations.
+- **Acceptance boundary:** CI passing is **not** evidence of live-cluster DEV/UAT, endpoint health, verified backup restoration, signed production approval or a production security support SLA.
+
+Review [release notes](docs/releases/v0.1.0-rc.1.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and the [production acceptance checklist](docs/RELEASE-CHECKLIST.md). Always use an approved test context before any Kubernetes mutation.
 
 ## Documentation & community
 
