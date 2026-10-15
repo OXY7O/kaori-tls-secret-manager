@@ -35,10 +35,9 @@ EXPECTED = {
 }
 
 REASON = (
-    "Audit #17: this path prints operator-visible Kubernetes Secret resource "
-    "identifiers or TLS diagnostic metadata, not key/credential values. "
-    "Confidential stdout and evidence are access-controlled per "
-    "docs/CODEQL-DISPOSITIONS.md. Accepted operator-metadata risk."
+    "Audit #17: intended operator-only Secret resource names/TLS diagnostics, "
+    "not key values. Protect stdout and evidence per docs/CODEQL-DISPOSITIONS.md. "
+    "Accepted residual metadata exposure."
 )
 
 
