@@ -196,7 +196,7 @@ class WizardTests(unittest.TestCase):
              redirect_stdout(output):
             w.main_menu(args)
         screen = output.getvalue()
-        self.assertIn("CERTIFICATE MANAGER", screen)
+        self.assertIn("TLS MANAGEMENT", screen)
         self.assertIn("  1. Inventory", screen)
         self.assertNotIn("DISCOVERY & DIAGNOSTICS", screen)
         self.assertNotIn("[DEFAULT]", screen)
@@ -392,10 +392,10 @@ class WizardTests(unittest.TestCase):
                           return_value=types.SimpleNamespace(columns=54)), \
              redirect_stdout(output):
             w.brand_banner()
-        self.assertIn("  CERTIFICATE MANAGER", output.getvalue())
+        self.assertIn("  TLS MANAGEMENT", output.getvalue())
         self.assertNotIn("OPS  /  TLS", output.getvalue())
-        self.assertIn("    .-----------.", output.getvalue())
-        self.assertIn("  KAORI TLS", output.getvalue())
+        self.assertIn("       .------.", output.getvalue())
+        self.assertIn("  KAORI", output.getvalue())
         self.assertTrue(output.getvalue().isascii())
         args = types.SimpleNamespace(workspace=None)
         with patch.object(w.sys.stdin, "isatty", return_value=True), \
@@ -420,7 +420,7 @@ class WizardTests(unittest.TestCase):
             w.brand_banner()
         rendered = output.getvalue()
         self.assertIn("\x1b]1337;File=inline=1;", rendered)
-        self.assertNotIn("    .-----------.", rendered)
+        self.assertNotIn("       .------.", rendered)
 
     def test_brand_logo_never_emits_inline_binary_in_plain_mode(self):
         from contextlib import redirect_stdout
@@ -431,7 +431,7 @@ class WizardTests(unittest.TestCase):
             w.brand_banner()
         self.assertNotIn("\x1b]1337", out.getvalue())
         self.assertNotIn("\x1b[", out.getvalue())
-        self.assertIn("  CERTIFICATE MANAGER", out.getvalue())
+        self.assertIn("  TLS MANAGEMENT", out.getvalue())
 
     def test_brand_falls_back_cleanly_when_png_missing(self):
         from io import StringIO
@@ -444,8 +444,8 @@ class WizardTests(unittest.TestCase):
              patch.object(w.sys, "stdout", output), \
              patch.dict(w.os.environ, {"TERM_PROGRAM": "iTerm.app"}, clear=False):
             w.brand_banner()
-        self.assertIn("KAORI TLS", output.getvalue())
-        self.assertIn("    .-----------.", output.getvalue())
+        self.assertIn("KAORI", output.getvalue())
+        self.assertIn("       .------.", output.getvalue())
         self.assertNotIn("\x1b]1337", output.getvalue())
 
     def test_toolbox_menu_help_never_checks_cluster(self):
