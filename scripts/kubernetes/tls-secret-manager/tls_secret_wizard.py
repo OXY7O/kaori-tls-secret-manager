@@ -1839,6 +1839,20 @@ def crud_wizard(args, operation):
     step(1, 3, "Read-only target checks and immutable plan",
          "Nothing will be created or deleted during this step.")
     result = crud_command(context, "plan-delete" if is_delete else "plan-create", *options)
+    if is_delete and result.get("status") == "HOLD":
+        header("DELETE ON HOLD / READ ONLY")
+        print(f"  Target : {result['target']}")
+        print(f"  Reason : {result['reason']}")
+        print()
+        print("  Detected blockers:")
+        for blocker in result.get("blockers", []):
+            print(f"  - {blocker}")
+        print()
+        warning("Delete is BLOCKED. No executable plan or Kubernetes write was created.")
+        hint("Remove the dependency through its normal change process, then re-run the check.")
+        hint("A clean Kubernetes scan cannot prove there are no external consumers.")
+        file_hint("Read-only HOLD evidence", result["evidence"])
+        return result
     plan_path = Path(result["plan"]).expanduser().resolve()
     planid = result["plan_id"]
     file_hint("Immutable lifecycle plan", plan_path)
