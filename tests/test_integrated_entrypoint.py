@@ -13,8 +13,12 @@ class IntegratedLauncherTests(unittest.TestCase):
         env = dict(os.environ)
         env.pop("KAORI_LEGACY_DIR", None)
         env["NO_COLOR"] = "1"
+        # capture_output only pipes stdout/stderr; without DEVNULL the child
+        # inherits the operator\'s real TTY and waits for wizard input.
+        # All subprocess smoke tests must explicitly simulate non-interactive stdin.
         return subprocess.run(["bash", str(ENTRY), *args], cwd=ROOT,
-                              env=env, capture_output=True, text=True, timeout=30)
+                              env=env, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, timeout=30)
 
     def test_no_external_checkout_required_for_diagnostics(self):
         result = self.run_cli("doctor")
