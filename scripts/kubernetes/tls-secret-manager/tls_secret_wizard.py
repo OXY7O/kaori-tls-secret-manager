@@ -163,14 +163,21 @@ def submenu_entry(number, title):
 def inventory_help():
     """Explain report boundaries without contacting Kubernetes."""
     header("INVENTORY HELP / READ ONLY")
-    print("  1 Filter   Narrow the on-screen Secret list only.")
-    print("  2 Reset    Return to the full inventory.")
+    print("  1 Filter   Show only matching Secrets in this terminal view.")
+    print("  2 Reset    Clear active filters; restore the full view.")
     print("  3 Export   Create an advisory CSV; NOT a renewal plan.")
-    print("  0 Back     Return without modifying Kubernetes Secrets.")
-    print("  Only stored TLS Secrets and configured Ingress hosts are inventoried.")
-    print("  Hostnames do not prove DNS resolution, HTTPS trust or endpoint health.")
-    print("  Missing Ingress reference does not prove a Secret is unused.")
-    print("  CSV, JSON and Markdown reports remain complete and private.")
+    print("  0 Back     Return to the main menu without changing Secrets.")
+    print()
+    print("  INVENTORY REPORTS")
+    print("  The full, unfiltered CSV, JSON and Markdown reports are already saved")
+    print("  in the private discovery directory.")
+    print("  Filtering never changes these original reports.")
+    print()
+    print("  INTERPRETATION")
+    print("  Hostnames are configured Ingress references; they do not prove live")
+    print("  DNS resolution, HTTPS trust, or endpoint health.")
+    print("  A missing Ingress reference does not mean the Secret is unused.")
+    print("  The renewal candidate CSV is advisory only, never an executable plan.")
 
 
 def toolbox_help():
@@ -422,52 +429,108 @@ def choose_indices(items):
         warning("Invalid or unconfirmed choice. Example: 1,3,5.")
 
 
+def inventory_section(title):
+    """Readable, compact sections without changing text-only/ANSI behavior."""
+    print()
+    print("  " + paint(title, 36))
+    print("  " + "-" * len(title))
+
+
 def display_tls_overview(rows, unresolved, *, title="UNIFIED TLS DISCOVERY",
-                         max_rows=30, context=""):
-    """Concise terminal preview; complete rows always remain in evidence."""
+                         max_rows=30, context="", total_rows=None, filters=None):
+    """Readable, responsive inventory preview; exports always keep complete data."""
     import shutil
+    import textwrap
     import tls_inventory
 
     summary = tls_inventory.summary(rows, unresolved)
+    width = shutil.get_terminal_size((120, 25)).columns
+    total = len(rows) if total_rows is None else total_rows
+    displayed = min(len(rows), max_rows)
+
     header(title)
-    print(f"  {icon('lock')} READ ONLY | Context: {context or 'see source run'}")
-    print(f"  TLS Secrets: {summary['TLS_SECRETS']} | "
-          f"Namespaces: {summary['NAMESPACES']} | "
-          f"VALID: {summary['VALID']} | EXPIRING: {summary['EXPIRING']} | "
-          f"EXPIRED: {summary['EXPIRED']} | INVALID: {summary['INVALID']} | "
+    inventory_section("SCOPE")
+    print(f"  {icon('lock')} READ ONLY   |   Context: {context or 'see source run'}")
+
+    inventory_section("SUMMARY")
+    print(f"  TLS Secrets: {summary['TLS_SECRETS']}    "
+          f"Namespaces: {summary['NAMESPACES']}")
+    print(f"  VALID: {summary['VALID']}    EXPIRING: {summary['EXPIRING']}    "
+          f"EXPIRED: {summary['EXPIRED']}")
+    print(f"  INVALID: {summary['INVALID']}    "
           f"NOT_YET_VALID: {summary['NOT_YET_VALID']}")
-    print(f"  No Ingress reference: {summary['NO_INGRESS_REFERENCE']} | "
-          f"Unresolved Ingress TLS references: {summary['UNRESOLVED_INGRESS_REFERENCE']}")
-    hint("Ingress hostname is a configured host, NOT live DNS resolution or HTTPS verification.")
-    hint("No Ingress reference does NOT mean unused: check Gateway, Pod, and external LB.")
-    wide = shutil.get_terminal_size((120, 25)).columns >= 105
-    if wide:
-        print("  #  Namespace               TLS Secret               Ingress hostname(s)"
-              "                Expires UTC  Days   Status")
-        print("  " + "-" * 112)
-    for index, item in enumerate(rows[:max_rows], 1):
-        if wide:
-            def short(value, limit):
-                val = str(value or "-")
-                suffix = "…" if USE_ICONS else "..."
-                return val if len(val) <= limit else val[:limit-len(suffix)] + suffix
-            print(f"  {index:>2} {short(item['namespace'],23):23} "
-                  f"{short(item['secret_name'],24):24} "
-                  f"{short(item['ingress_hostnames'],34):34} "
-                  f"{short(item['expires_at_utc'][:10],12):12} "
-                  f"{str(item['days_remaining'] or '-'):>5}  "
-                  f"{paint(item['status'], 31 if item['status'] in ('INVALID','EXPIRED') else 33 if item['status'] in ('EXPIRING','NOT_YET_VALID') else 32)}")
-        else:
-            print(f"  {index:>2}. {item['namespace']}/{item['secret_name']} "
-                  f"[{paint(item['status'], 31 if item['status'] in ('INVALID','EXPIRED') else 33 if item['status'] in ('EXPIRING','NOT_YET_VALID') else 32)}]")
-            print(f"      Ingress host: {item['ingress_hostnames']}")
-            print(f"      Expires (UTC): {item['expires_at_utc'] or '-'} | "
-                  f"Days remaining: {item['days_remaining'] or ('0' if item['days_remaining'] == '0' else '-')}")
+    print(f"  Without Ingress reference: {summary['NO_INGRESS_REFERENCE']}")
+    print("  Unresolved Ingress TLS references (full discovery): "
+          f"{summary['UNRESOLVED_INGRESS_REFERENCE']}")
+
+    inventory_section("DISCOVERY NOTES")
+    for note in (
+        "Ingress hostnames are configured references, not proof of live DNS or HTTPS.",
+        "A Secret without an Ingress reference may still be used by a Gateway, Pod, "
+        "or external load balancer.",
+    ):
+        print(textwrap.fill(note, width=max(28, min(width - 2, 100)),
+                            initial_indent="  - ", subsequent_indent="    "))
+
+    inventory_section("RESULTS")
+    if width >= 105:
+        ns_width, secret_width = 20, 20
+        host_width = min(34, width - 84)
+        # Formatting requires exactly 84 + host_width visible columns.
+        def shorten(value, limit):
+            value = str(value) if value not in (None, "") else "-"
+            return value if len(value) <= limit else value[:limit - 3] + "..."
+
+        def render_line(number, namespace, secret, hosts, expires, days, status):
+            return (f"  {number:>2}  {namespace:<{ns_width}}  "
+                    f"{secret:<{secret_width}}  {hosts:<{host_width}}  "
+                    f"{expires:<10}  {days:>5}  {status}")
+
+        print(render_line("#", "Namespace", "TLS Secret",
+                          "Ingress hostname(s)", "Expires UTC", "Days", "Status"))
+        print("  " + "-" * (82 + host_width))
+        for index, item in enumerate(rows[:max_rows], 1):
+            status = item["status"]
+            color = 31 if status in ("INVALID", "EXPIRED") else (
+                33 if status in ("EXPIRING", "NOT_YET_VALID") else 32)
+            print(render_line(str(index),
+                              shorten(item["namespace"], ns_width),
+                              shorten(item["secret_name"], secret_width),
+                              shorten(item["ingress_hostnames"], host_width),
+                              str(item.get("expires_at_utc") or "-")[:10],
+                              str(item.get("days_remaining") if item.get(
+                                  "days_remaining") not in ("", None) else "-"),
+                              paint(status, color)))
+    else:
+        for index, item in enumerate(rows[:max_rows], 1):
+            status = item["status"]
+            color = 31 if status in ("INVALID", "EXPIRED") else (
+                33 if status in ("EXPIRING", "NOT_YET_VALID") else 32)
+            print(f"  {index}. {item['namespace']}/{item['secret_name']} "
+                  f"[{paint(status, color)}]")
+            print(f"     Ingress: {item['ingress_hostnames'] or '-'}")
+            print(f"     Expires (UTC): {str(item.get('expires_at_utc') or '-')[:10]}"
+                  f"    Days remaining: {item.get('days_remaining') if item.get('days_remaining') not in ('', None) else '-'}")
+            print()
+
+    if not rows:
+        print("  No TLS Secrets match the current filters.")
+    print(f"\n  Showing {displayed} of {total} TLS Secret(s).")
     if len(rows) > max_rows:
-        hint(f"Showing first {max_rows}/{len(rows)} rows. CSV/JSON/Markdown contain the FULL overview.")
+        hint(f"Showing first {max_rows}/{len(rows)} rows. "
+             "CSV/JSON/Markdown include the FULL unfiltered overview.")
+
+    if filters:
+        inventory_section("ACTIVE FILTERS")
+        for label, value in filters.items():
+            if value:
+                print(f"  {label:<12}: {value}")
+
     if unresolved:
-        warning(f"{len(unresolved)} Ingress TLS reference(s) did not match TLS Secret inventory.")
-        hint("Inspect tls-overview.md for Ingress names and configured hostnames.")
+        print()
+        warning(f"{len(unresolved)} unresolved Ingress TLS reference(s) "
+                "in the full discovery.")
+        hint("See tls-overview.md for the original Ingress and hostname mappings.")
     return summary
 
 
@@ -548,14 +611,18 @@ def tls_discovery_dashboard(args):
     for kind, path in reports.items():
         file_hint(f"Unified overview {kind.upper()}", path)
     shown = overview
+    active_filters = {}
     while True:
-        display_tls_overview(shown, unresolved, context=context)
-        submenu_entry("1", "Filter")
-        submenu_entry("2", "Reset")
-        submenu_entry("3", "Export candidates")
+        display_tls_overview(shown, unresolved, context=context,
+                             total_rows=len(overview), filters=active_filters)
+        inventory_section("ACTIONS")
+        submenu_entry("1", "Filter inventory")
+        submenu_entry("2", "Reset filters")
+        submenu_entry("3", "Export renewal candidates")
         submenu_entry("?", "Help")
         submenu_entry("0", "Back")
-        choice = ask("Inventory action (? for Help)", "0").strip().upper()
+        print()
+        choice = ask("Select action (? for Help)", "0").strip().upper()
         if choice in ("?", "H", "HELP"):
             inventory_help()
             continue
@@ -563,25 +630,39 @@ def tls_discovery_dashboard(args):
             ok("Read-only TLS inventory complete. Kubernetes Secrets were not modified.")
             return report_dir
         if choice == "1":
+            inventory_section("FILTER INVENTORY")
             namespace = ask("Namespace contains (Enter=all)", "")
             status = ask("Status: VALID, EXPIRING, EXPIRED, NOT_YET_VALID, INVALID (Enter=all)", "").upper()
             term = ask("Secret, hostname, Ingress or SAN contains (Enter=all)", "")
             try:
-                shown = tls_inventory.filter_overview(
+                filtered = tls_inventory.filter_overview(
                     overview, namespace=namespace, status=status, query=term
                 )
             except ValueError as ex:
                 warning(str(ex))
                 continue
-            hint(f"Showing {len(shown)} matching Secret(s); full unfiltered exports remain unchanged.")
+            shown = filtered
+            active_filters = {
+                "Namespace": namespace,
+                "Status": status,
+                "Search": term,
+            } if any((namespace, status, term)) else {}
+            if active_filters:
+                ok(f"Filters applied. {len(shown)} matching Secret(s).")
+            else:
+                hint("No filters entered. Showing all TLS Secrets.")
         elif choice == "2":
             shown = overview
-            ok("Filters reset.")
+            active_filters = {}
+            ok("Filters reset. Showing all TLS Secrets.")
         elif choice == "3":
             if not shown:
                 warning("No candidates match the current filter. Reset or change filters.")
                 continue
             try:
+                inventory_section("EXPORT RENEWAL CANDIDATES")
+                hint("Exports an advisory shortlist from the displayed rows only.")
+                hint("The original full-inventory reports are never modified.")
                 export_renewal_candidates(shown, report_dir)
             except ValueError as ex:
                 warning(str(ex))
