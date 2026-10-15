@@ -52,14 +52,14 @@ class CrudSafetyTests(unittest.TestCase):
         target["metadata"]["ownerReferences"] = [{"kind": "Certificate"}]
         with patch.object(m, "find_target", return_value=target), \
              patch.object(m, "dependency_evidence", side_effect=AssertionError("Should stop")):
-            with self.assertRaisesRegex(m.Stop, "Owner references"):
+            with self.assertRaisesRegex(m.DeleteHold, "CONTROLLER_MANAGED"):
                 m.plan_delete(args())
 
     def test_delete_plan_blocks_live_references(self):
         with patch.object(m, "find_target", return_value=obj()), \
              patch.object(m, "dependency_evidence", return_value=["Ingress TLS reference"]), \
              patch.object(m, "fingerprint_from_der_or_pem", side_effect=AssertionError("Should stop")):
-            with self.assertRaisesRegex(m.Stop, "dependencies"):
+            with self.assertRaisesRegex(m.DeleteHold, "SECRET_IN_USE"):
                 m.plan_delete(args())
 
     def test_dependency_scanner_fails_closed_on_missing_rbac(self):
@@ -76,6 +76,64 @@ class CrudSafetyTests(unittest.TestCase):
              patch.object(m, "kube", return_value=b"gateways.gateway.networking.k8s.io\n"):
             blockers = m.dependency_evidence("sandbox", "demo", "demo-tls")
         self.assertEqual(blockers, ["Gateway TLS certificateRef", "Ingress TLS reference", "Pod dependency"])
+
+    def test_detailed_dependency_evidence_identifies_exact_consumers(self):
+        ingress = {"items": [{"metadata": {"name": "web", "namespace": "demo"},
+                              "spec": {"tls": [{"secretName": "demo-tls"}]}}]}
+        pods = {"items": [{"metadata": {"name": "web-76c", "namespace": "demo"},
+                           "spec": {"volumes": [{"secret": {"secretName": "demo-tls"}}]}}]}
+        gateway = {"items": [{"metadata": {"name": "edge", "namespace": "demo"},
+                              "spec": {"listeners": [
+                                  {"tls": {"certificateRefs": [{"name": "demo-tls"}]}}]}}]}
+        with patch.object(m, "kube_json", side_effect=[ingress, pods, gateway]), \
+             patch.object(m, "kube", return_value=b"gateways.gateway.networking.k8s.io\n"):
+            found = m.dependency_evidence("sandbox", "demo", "demo-tls", detailed=True)
+        self.assertEqual(found, ["Gateway TLS certificateRef: demo/edge",
+                                 "Ingress TLS reference: demo/web",
+                                 "Pod dependency: demo/web-76c"])
+
+    def test_delete_ownership_reports_a_named_hold(self):
+        target = obj()
+        target["metadata"]["ownerReferences"] = [
+            {"kind": "Certificate", "name": "managed-demo"}]
+        with patch.object(m, "find_target", return_value=target), \
+             patch.object(m, "dependency_evidence",
+                          side_effect=AssertionError("No scan for owned target")):
+            with self.assertRaises(m.DeleteHold) as caught:
+                m.plan_delete(args())
+        self.assertEqual(caught.exception.reason, "CONTROLLER_MANAGED")
+        self.assertIn("Controller owner: Certificate/managed-demo",
+                      caught.exception.details)
+
+    def test_incomplete_dependency_scan_holds_without_creating_plan(self):
+        with patch.object(m, "find_target", return_value=obj()), \
+             patch.object(m, "dependency_evidence",
+                          side_effect=m.Stop("kubectl returned failure (1)")), \
+             patch.object(m, "write_plan",
+                          side_effect=AssertionError("No executable plan")):
+            with self.assertRaises(m.DeleteHold) as caught:
+                m.plan_delete(args())
+        self.assertEqual(caught.exception.reason, "DEPENDENCY_SCAN_INCOMPLETE")
+
+    def test_delete_hold_json_evidence_is_not_executable_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            hold = m.DeleteHold("SECRET_IN_USE", ["Ingress TLS reference: demo/web"])
+            src = args(workspace=str(Path(tmp) / "private"),
+                       context="sandbox", namespace="demo", secret="demo-tls")
+            with patch.object(m, "plan_delete", side_effect=hold), \
+                 redirect_stdout(StringIO()) as output:
+                rc = m.main(["--context", "sandbox", "plan-delete",
+                             "--namespace", "demo", "--secret", "demo-tls",
+                             "--workspace", src.workspace])
+            self.assertEqual(rc, 0)
+            result = json.loads(output.getvalue())
+            self.assertEqual(result["status"], "HOLD")
+            self.assertEqual(result["reason"], "SECRET_IN_USE")
+            self.assertTrue(Path(result["evidence"]).is_file())
+            self.assertFalse(list(Path(src.workspace).glob("*-plan.json")))
+            self.assertFalse(list(Path(src.workspace).glob("*-journal.json")))
+            with self.assertRaisesRegex(m.Stop, "Invalid plan path"):
+                m.read_plan(result["evidence"])
 
     def test_immutable_plan_id_detects_tampering(self):
         with tempfile.TemporaryDirectory() as tmp:
