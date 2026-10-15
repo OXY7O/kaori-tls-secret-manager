@@ -24,9 +24,9 @@ No. The normal guided Create/Delete paths run under one authorized operator with
 
 Delete takes an **encrypted backup** and locally verifies that it can be decrypted before the Kubernetes write. The identity is required for later restore; keep it protected and maintain a secure second copy outside your laptop. Do not paste it into issues or upload it to GitHub.
 
-### Why does menu 4 say there are no previous runs?
+### Why does Reverify HTTPS say there are no previous runs?
 
-Main menu **4 Reverify HTTPS** uses saved renewal evidence. For a *new* Secret or endpoint, use **3 TLS Toolbox → 4 TLS Doctor**. See [local guide](LOCAL-TEST.md).
+Main menu **Reverify HTTPS** uses saved renewal evidence. For a *new* Secret or endpoint, use **TLS Toolbox → TLS Doctor**. See [local guide](LOCAL-TEST.md).
 
 ### Does exported Prometheus data automatically appear in Prometheus?
 
