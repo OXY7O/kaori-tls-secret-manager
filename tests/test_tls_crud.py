@@ -81,8 +81,8 @@ class CrudSafetyTests(unittest.TestCase):
         # A similarly named CRD must never be treated as the Gateway API.
         ing = {"items": []}
         pods = {"items": []}
-        similar = b"malicious-gateways.gateway.networking.k8s.io\\n"
-        with patch.object(m, "kube_json", side_effect=[ing, pods]) as read, \\
+        similar = b"malicious-gateways.gateway.networking.k8s.io\n"
+        with patch.object(m, "kube_json", side_effect=[ing, pods]) as read, \
              patch.object(m, "kube", return_value=similar):
             self.assertEqual(m.dependency_evidence("sandbox", "demo", "demo-tls"), [])
         self.assertEqual(read.call_count, 2)
