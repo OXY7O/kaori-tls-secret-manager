@@ -1,6 +1,6 @@
 # Release readiness checklist
 
-This is a **release acceptance gate**, not a backlog on the project homepage. The development source currently reports version **0.1.0-dev**; no production-ready tag or binary has been approved. Fill these checks with evidence before advertising a stable release.
+This is a **release acceptance gate**, not a backlog on the project homepage. The development source reports evaluation version **0.1.0-rc.1**; no production-ready stable tag or binary has been approved. Fill these checks with evidence before advertising a stable release.
 
 ## Repository and community
 
@@ -35,4 +35,4 @@ This is a **release acceptance gate**, not a backlog on the project homepage. Th
 - [ ] Operational runbooks reference a version-pinned release with checksum, while maintaining their own approval workflows.
 - [ ] Maintainers update SECURITY supported versions, changelog release date, tested platforms and support expectations.
 
-**Decision: NOT RELEASED.** A docs PR, successful offline test run or visually polished README must never be construed as DEV/UAT PASS or approval for production Kubernetes mutations.
+**Decision: COMMUNITY PRERELEASE ONLY; PRODUCTION ACCEPTANCE NOT GRANTED.** A source archive, green CI or documentation are not DEV/UAT PASS. Stable release requires every outstanding security, restore, compatibility, provenance and environment acceptance item above.
