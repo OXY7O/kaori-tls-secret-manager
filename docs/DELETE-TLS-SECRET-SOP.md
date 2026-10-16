@@ -44,7 +44,9 @@ Lifecycle journal: .../delete-<PLAN_ID>-journal.json
 Encrypted recovery backup: .../delete-<PLAN_ID>-backup.age
 ~~~
 
-For a separate authorized restore after a **verified** Delete, open **Delete recovery / Restore** and provide the original plan path; it performs read-only reconciliation before any write. Do not restore from an uncertain journal or overwrite a new Secret.\n\nTo verify the resource is absent, use the exact context/namespace/name displayed by KAORI:
+For a separate authorized restore after a **verified** Delete, open **Delete recovery / Restore** and provide the original plan path; it performs read-only reconciliation before any write. Do not restore from an uncertain journal or overwrite a new Secret.
+
+To verify the resource is absent, use the exact context/namespace/name displayed by KAORI:
 
 ~~~bash
 kubectl --context "APPROVED_CONTEXT" -n "APPROVED_NAMESPACE" \

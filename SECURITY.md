@@ -1,15 +1,16 @@
 # Security Policy
 
-KAORI TLS Certificate Manager operates on sensitive Kubernetes TLS Secret material. Please treat credentials, kubeconfigs, certificate private keys, approval evidence, recovery identities and operational plans as confidential.
+KAORI TLS Secret Manager operates on sensitive Kubernetes TLS Secrets (`type: kubernetes.io/tls`). It does not issue CA certificates, perform ACME or manage standalone certificates. Please treat credentials, kubeconfigs, certificate private keys, approval evidence, recovery identities and operational plans as confidential.
 
 ## Supported versions
 
 | Source | Security support |
 | --- | --- |
-| **v0.2.3** | Current public source release; best-effort vulnerability handling |
-| **v0.2.2** | Previous source release; upgrade to v0.2.3 |
-| **v0.2.1** | Previous source release; upgrade to v0.2.3 |
-| **v0.2.0** | Previous source release; upgrade to v0.2.3 |
+| **v0.2.4** | Current public source release; best-effort vulnerability handling |
+| **v0.2.3** | Previous source release; upgrade to v0.2.4 |
+| **v0.2.2** | Previous source release; upgrade to v0.2.4 |
+| **v0.2.1** | Previous source release; upgrade to v0.2.4 |
+| **v0.2.0** | Previous source release; upgrade to v0.2.4 |
 | **v0.1.1** | Previous source release; upgrade to v0.2.1 |
 | **v0.1.0** | Historical source release; upgrade to v0.2.0 |
 | **v0.1.0-rc.1** | Historical release candidate; upgrade to v0.2.0 |
@@ -28,10 +29,12 @@ Maintainers will assess reports and coordinate a fix/disclosure when possible; n
 
 ## Operator security expectations
 
-- Use only an authorized kubeconfig context and minimum required namespace-scoped RBAC.
+- Use only an authorized kubeconfig context and the necessary scoped RBAC. DEV/UAT provides a validation environment; production use requires independent operational acceptance and change authorization.
 - Do not store private evidence, Kubernetes Secret data, age recovery identities, signed approvals, kubeconfig or real PEM material in the repository or public CI artifacts.
 - Keep private workspaces outside the source checkout, with restrictive permissions. Backups encrypted with age are not recoverable if the necessary identity is lost; maintain independent secure custody.
+- Read-only inspection, diagnostics and plans do **not** require write approval; Kubernetes read RBAC still applies.
 - The normal **single-operator interactive wizard** uses deliberate, local human confirmation. Create, Update and Delete do **not** require separate detached signature files in this mode.
+- One-target guided renewal uses `AUTHORIZED` plus exact Plan ID; multi-target/external-TLS-termination renewal additionally requires independent signed approval.
 - The **non-interactive enterprise workflow** supports independent signed approval and a protected approver public trust anchor; do not bypass its trust boundary.
 - Treat unknown API results, context or resource identity drift, RBAC gaps, failed backups and uncertain dependency scans as **STOP/HOLD**. Reconcile before taking further action; never blindly retry a mutation.
 - Delete requires live API UID/resourceVersion preconditions plus dependency/owner checks. Ingress, Pod, standard workload-template and Gateway scans do **not** prove that external consumers are absent; the operator must review them separately and explicitly attest to their absence.

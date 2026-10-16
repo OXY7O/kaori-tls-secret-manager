@@ -197,7 +197,7 @@ def toolbox_help():
 
 def renewal_help():
     """Pre-change operator guide only; does not authorize or start any operation."""
-    header("RENEWAL GUIDE / APPROVAL REQUIRED")
+    header("KUBERNETES TLS SECRET RENEWAL / AUTHORIZATION")
     print("  1-3  Choose context/scope and discover candidate TLS Secrets")
     print("  4-5  Verify certificate/key and create a guarded renewal plan")
     print("  6    Map real HTTPS endpoints; staged Secrets require review")
@@ -213,8 +213,10 @@ def show_operator_help():
     """Local-only operator reference: no kubectl, certificates or Secrets accessed."""
     header("HELP  /  TLS SECRET MANAGER")
     print("  PURPOSE")
-    print("    Discover Kubernetes TLS Secrets, understand Ingress references,")
-    print("    inspect certificate health, and execute guarded renewals.")
+    print("    Manage Kubernetes Secrets of type kubernetes.io/tls only:")
+    print("    discover certificate/key data and Ingress references,")
+    print("    inspect their certificate health and perform guarded Secret writes.")
+    print("    This tool does not issue CA certificates, use ACME, or replace cert-manager.")
     print("    This is a terminal application, not a browser UI.\n")
     print("  MAIN MENU")
     for number, name, detail in (
@@ -222,14 +224,14 @@ def show_operator_help():
         ("2", "Expiry audit", "Read-only validity/expiry dates from stored TLS Secrets."),
         ("3", "Toolbox", "Read-only health, families, dependencies, TLS Doctor, drift and metrics."),
         ("4", "Reverify", "Recheck HTTPS from an existing renewal run; for a new test use Toolbox > TLS Doctor."),
-        ("5", "Renew TLS", "Guided plan, authorized backup/write, verification and reporting."),
+        ("5", "Renew TLS Secrets", "Guided plan, operator authorization, backup/write and verification."),
         ("6", "Review HOLD", "Review previously held targets; no Secret changes in review."),
         ("7", "History", "Inspect existing private run folders and journals."),
         ("8", "Status guide", "Detailed READY/HOLD/STOP and recovery status meanings."),
         ("9", "Help", "This reference page (also type ? or H)."),
-        ("10", "Create TLS", "Guided single-operator create; no separate signature."),
-        ("11", "Delete TLS", "Guarded decommission with dependency audit and encrypted backup."),
-        ("12", "Update TLS", "Guided same-SAN rotation and verified encrypted backup."),
+        ("10", "Create TLS Secret", "Guided single-operator create; no separate signature."),
+        ("11", "Delete TLS Secret", "Guarded delete with dependency audit and encrypted backup."),
+        ("12", "Update TLS Secret", "Guided same-SAN update and verified encrypted backup."),
         ("13", "Age help", "Local recovery key setup, custody, and guidance."),
         ("14", "Recovery", "Read-only Delete reconciliation and guarded Restore."),
         ("0", "Exit", "Leave the interactive menu."),
@@ -253,9 +255,9 @@ def show_operator_help():
     renewal_help()
     print("\n  SAFETY / SHORTCUTS")
     print("    Menu 1 is the default and does not run renewal or rollback.")
-    print("    Renewal needs a fresh plan, appropriate approval, encrypted backup,")
+    print("    Renewal needs a fresh plan, explicit operator confirmation, encrypted backup,")
     print("    and explicit write authorization. Multi-target/external TLS changes")
-    print("    require independent signed authorization; no automatic retry.")
+    print("    require a separate approver\u0027s signed authorization; no automatic retry.")
     print("    Inventory hostnames are configured Ingress names, NOT live TLS proof.")
     print("    Reverify does not update Kubernetes Secrets but records local evidence.")
     print("    Use BACK to cancel a prompt; use 0 to exit a menu.")
@@ -580,7 +582,7 @@ def export_renewal_candidates(rows, output_dir):
     tls_inventory.write_candidates(destination, selected)
     inventory_section("EXPORT COMPLETE")
     file_hint("Advisory candidates (no plan/no write)", destination)
-    hint("Start main menu 5 (Renew TLS) separately; a FRESH discovery, plan and approval are required.")
+    hint("Start menu 5 (Renew TLS Secrets) separately; fresh discovery, plan and authorization are required.")
     return destination
 
 
@@ -1240,9 +1242,13 @@ def wizard(args):
     workspace.mkdir(mode=0o700)
     args._workspace = workspace
     args._last_run_dir = None
-    header("TLS RENEWAL / GUIDED CHANGE")
+    header("KUBERNETES TLS SECRET RENEWAL / GUIDED CHANGE")
     print("  Discover > Plan > Authorize > Backup > Renew > Verify")
-    warning("Use only in authorized DEV/UAT. Approval is required before a write.")
+    warning("Use only a Kubernetes context and namespaces you are authorized to change.")
+    hint("Read-only discovery and planning do not require mutation approval.")
+    hint("Single-target renewal: type AUTHORIZED and the exact Plan ID before a write.")
+    hint("Multi-target/external-TLS renewal: independent signed approval is also required.")
+    hint("Validate in DEV/UAT before production use; CI does not replace cluster UAT.")
     print("  Already-current Secrets: SKIPPED  |  Identity mismatches: HOLD")
     file_hint("Private evidence directory", workspace)
 
@@ -1500,7 +1506,7 @@ def choose_previous_plan(args, held_only=False, purpose="history"):
     else:
         warning("No matching saved renewal runs were found in this workspace.")
         if purpose == "reverify":
-            hint("Main menu 5 > Renew TLS creates renewal-plan.json at Step 5/9.")
+            hint("Main menu 5 > Renew TLS Secrets creates renewal-plan.json at Step 5/9.")
             hint("Reverify HTTPS needs that plan AND a journal from an executed renewal.")
             hint("A plan alone is not enough. Do not renew just to test HTTPS.")
             hint("For a first-time HTTPS check: Main menu 3 > TLS Toolbox > 4. TLS Doctor.")
@@ -1993,7 +1999,7 @@ def main_menu(args):
         menu_entry("3", "TLS Toolbox")
         menu_entry("4", "Reverify HTTPS")
         print()
-        menu_entry("5", "Renew TLS", caution=True)
+        menu_entry("5", "Renew TLS Secrets", caution=True)
         menu_entry("6", "Review HOLD")
         print()
         menu_entry("7", "Run history")
@@ -2014,7 +2020,7 @@ def main_menu(args):
             ok("Menu closed; no new operation started.")
             return
         if choice == "0":
-            ok("Exiting the TLS manager.")
+            ok("Exiting KAORI TLS Secret Manager.")
             return
         try:
             if choice in ("9", "?", "H", "HELP"):

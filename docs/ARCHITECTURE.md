@@ -1,6 +1,6 @@
 # Architecture
 
-KAORI TLS Management is a terminal-first utility for inspecting and managing Kubernetes Secrets of type **kubernetes.io/tls**. It combines a guided interface, an explicit lifecycle backend, certificate diagnostics and audit/recovery evidence.
+KAORI TLS Secret Manager is a terminal-first utility for inspecting and managing Kubernetes Secrets of type **kubernetes.io/tls**. It combines a guided interface, an explicit lifecycle backend, certificate diagnostics and audit/recovery evidence.
 
 ## Components
 

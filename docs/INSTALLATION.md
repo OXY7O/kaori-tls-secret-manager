@@ -1,6 +1,6 @@
 # Installation and verification
 
-KAORI TLS Management is distributed as source code through [versioned GitHub Releases](https://github.com/OXY7O/kaori-tls-secret-manager/releases). No separate Python package or container image is required.
+KAORI TLS Secret Manager is distributed as source code through [versioned GitHub Releases](https://github.com/OXY7O/kaori-tls-secret-manager/releases). No separate Python package or container image is required.
 
 ## Requirements
 
@@ -21,7 +21,7 @@ sudo apt install -y git python3 openssl age ca-certificates
 ~~~bash
 mkdir -p ~/workspace
 cd ~/workspace
-git clone --branch v0.2.3 --depth 1 https://github.com/OXY7O/kaori-tls-secret-manager.git
+git clone --branch v0.2.4 --depth 1 https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain

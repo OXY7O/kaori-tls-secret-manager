@@ -1,12 +1,12 @@
 # KAORI visual identity
 
-**KAORI TLS Management** deliberately separates public documentation branding from the icon used **inside interactive CLI terminals**.
+**KAORI TLS Secret Manager** deliberately separates public documentation branding from the icon used **inside interactive CLI terminals**.
 
 ## Assets
 
 | Asset | Scope |
 | --- | --- |
-| [kaori-logo.png](../assets/kaori-logo.png) | Original README/documentation wordmark; unchanged |
+| [kaori-logo.png](../assets/kaori-logo.png) | Corrected README/documentation wordmark: **KAORI TLS Secret Manager**, with the approved purple icon |
 | [kaori-mark.png](../assets/kaori-mark.png) | Original public square orbital-K mark; unchanged |
 | [kaori-cli-mark.png](../assets/kaori-cli-mark.png) | **Approved violet four-petal terminal header icon**, optimized from the supplied original |
 
