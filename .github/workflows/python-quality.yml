@@ -1,12 +1,10 @@
 name: KAORI Python Quality
 
 on:
+  # This job is a required check: it must report even on docs-only PRs.
+  # Python setup and lint remain conditional on actual changed Python files.
   pull_request:
     branches: [main]
-    paths:
-      - "**/*.py"
-      - "ruff.toml"
-      - ".github/workflows/python-quality.yml"
   push:
     branches: [main]
     paths:
