@@ -38,7 +38,7 @@ bash scripts/tls-secret-manager.sh crud --context APPROVED_CONTEXT \
   --workspace /secure/evidence
 ~~~
 
-These commands do not write Kubernetes Secrets. **HOLD** on insufficient RBAC, incomplete Ingress/Pod/Gateway visibility, controller ownership or active consumers is an expected safety outcome, not a condition to override. Kubernetes reference discovery does not establish the absence of external consumers.
+These commands do not write Kubernetes Secrets. **HOLD** on insufficient RBAC, incomplete Ingress/Pod/Gateway/workload-template visibility, controller ownership or active consumers is an expected safety outcome, not a condition to override. Kubernetes reference discovery does not establish the absence of external consumers.
 
 ## Optional independent signed approvals
 

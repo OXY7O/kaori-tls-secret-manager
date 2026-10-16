@@ -257,6 +257,38 @@ def owner_blockers(obj):
     return sorted(set(blocked))
 
 
+def pod_spec_references_secret(spec, secret_name):
+    """Inspect all standard PodSpec paths without accessing Secret values."""
+    require(isinstance(spec, dict), "Malformed Pod/workload spec in dependency scan")
+    names = []
+    for volume in spec.get("volumes") or []:
+        names.append((volume.get("secret") or {}).get("secretName"))
+        for projection in (volume.get("projected") or {}).get("sources") or []:
+            names.append((projection.get("secret") or {}).get("name"))
+    names.extend(ref.get("name") for ref in spec.get("imagePullSecrets") or [])
+    for container_kind in ("containers", "initContainers", "ephemeralContainers"):
+        for container in spec.get(container_kind) or []:
+            names.extend((v.get("secretRef") or {}).get("name")
+                         for v in container.get("envFrom") or [])
+            names.extend(((v.get("valueFrom") or {}).get("secretKeyRef") or {}).get("name")
+                         for v in container.get("env") or [])
+    return secret_name in names
+
+
+def workload_template(item):
+    """Return PodSpec from workload templates, including dormant CronJobs."""
+    kind = item.get("kind")
+    spec = item.get("spec") or {}
+    if kind == "CronJob":
+        spec = ((spec.get("jobTemplate") or {}).get("spec") or {})
+    require(kind in ("Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "Job", "CronJob"),
+            "Unknown workload type in dependency scan")
+    template = (spec.get("template") or {})
+    require(isinstance(template.get("spec"), dict),
+            "Malformed workload Pod template in dependency scan")
+    return template["spec"]
+
+
 def dependency_evidence(context, namespace, name, *, detailed=False):
     """Find Kubernetes Secret consumers; fail closed on incomplete API visibility."""
     ingress = kube_json(context, "-n", namespace, "get", "ingresses.networking.k8s.io", "-o", "json")
@@ -276,20 +308,21 @@ def dependency_evidence(context, namespace, name, *, detailed=False):
         if any(e.get("secretName") == name for e in item.get("spec", {}).get("tls", [])):
             found("Ingress TLS reference", item, "Ingress TLS reference")
     for pod in pods.get("items", []):
-        spec = pod.get("spec", {})
-        refs = [v.get("secret", {}).get("secretName") for v in spec.get("volumes", [])]
-        for volume in spec.get("volumes", []):
-            refs.extend(p.get("secret", {}).get("name") for p in
-                        volume.get("projected", {}).get("sources", []) if p.get("secret"))
-        refs.extend(v.get("name") for v in spec.get("imagePullSecrets", []))
-        for category in ("containers", "initContainers", "ephemeralContainers"):
-            for container in spec.get(category, []):
-                refs.extend(v.get("secretRef", {}).get("name")
-                            for v in container.get("envFrom", []))
-                refs.extend(v.get("valueFrom", {}).get("secretKeyRef", {}).get("name")
-                            for v in container.get("env", []))
-        if name in refs:
+        if pod_spec_references_secret(pod.get("spec"), name):
             found("Pod dependency", pod, "Pod dependency")
+
+    # A scale-to-zero Deployment, suspended CronJob or future ReplicaSet may
+    # reference this Secret while currently having zero Pods. Never infer unused
+    # from an empty Pod list. Missing list/RBAC visibility must fail closed.
+    workloads = kube_json(context, "-n", namespace, "get",
+                          "deployments.apps,statefulsets.apps,daemonsets.apps,"
+                          "replicasets.apps,jobs.batch,cronjobs.batch", "-o", "json")
+    require(isinstance(workloads.get("items"), list),
+            "Incomplete workload template listing")
+    for item in workloads["items"]:
+        if pod_spec_references_secret(workload_template(item), name):
+            found(str(item["kind"]) + " template reference", item,
+                  "Workload template reference")
 
     resources = kube(context, "api-resources", "--api-group=gateway.networking.k8s.io",
                      "-o", "name").decode("utf-8")
@@ -302,7 +335,8 @@ def dependency_evidence(context, namespace, name, *, detailed=False):
                 for ref in (listener.get("tls", {}).get("certificateRefs") or []):
                     if (ref.get("name") == name and
                         (ref.get("namespace") or gw["metadata"]["namespace"]) == namespace and
-                        ref.get("kind", "Secret") == "Secret"):
+                        ref.get("kind", "Secret") == "Secret" and
+                        ref.get("group", "") == ""):
                         found("Gateway TLS certificateRef", gw, "Gateway TLS certificateRef")
     return sorted(set(blockers))
 

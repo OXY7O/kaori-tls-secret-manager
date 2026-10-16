@@ -33,7 +33,7 @@ There is no background controller, custom Kubernetes operator or automatic ACME 
 | Update | Existing Secret, matching SAN set, fresh plan, encrypted backup, approval | One authorized replacement with concurrency checks |
 | Delete | No known active consumers, complete reference scan, ownership check, external-consumer attestation, backup and approval | Conditional single-target delete with post-write absence verification |
 
-Dependency discovery includes Ingress TLS references, Pod Secret references and Gateway API certificate references where available, along with owner/controller information. It cannot prove that out-of-cluster applications, load balancers or proxies do not rely on a Secret; those relationships require separate operator verification.
+Dependency discovery includes Ingress TLS references, Pod Secret references, standard workload Pod templates (Deployment/StatefulSet/DaemonSet/ReplicaSet/Job/CronJob, even when no Pods are running), and Gateway API certificate references including cross-namespace targets, along with owner/controller information. It cannot prove that out-of-cluster applications, load balancers or proxies do not rely on a Secret; those relationships require separate operator verification.
 
 ## Data protection
 

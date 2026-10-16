@@ -183,13 +183,48 @@ def owners_from_pods(ctx, ns, secret_name):
     return consumers
 
 
+def owners_from_workloads(ctx, ns, secret_name):
+    """Include dormant workloads whose Pod templates still reference TLS Secrets."""
+    data = kube_json(ctx, "-n", ns, "get",
+                     "deployments.apps,statefulsets.apps,daemonsets.apps,"
+                     "replicasets.apps,jobs.batch,cronjobs.batch")
+    check(isinstance(data.get("items"), list), "Workload scan incomplete")
+    results = []
+    for workload in data["items"]:
+        kind = workload.get("kind")
+        check(kind in ("Deployment", "StatefulSet", "DaemonSet",
+                       "ReplicaSet", "Job", "CronJob"), "Unexpected workload type")
+        spec = workload.get("spec") or {}
+        if kind == "CronJob":
+            spec = (spec.get("jobTemplate") or {}).get("spec") or {}
+        pod_spec = (spec.get("template") or {}).get("spec")
+        check(isinstance(pod_spec, dict), "Workload template missing PodSpec")
+        refs = []
+        for volume in pod_spec.get("volumes") or []:
+            refs.append((volume.get("secret") or {}).get("secretName"))
+            refs.extend((x.get("secret") or {}).get("name") for x in
+                        (volume.get("projected") or {}).get("sources") or [])
+        refs.extend(x.get("name") for x in pod_spec.get("imagePullSecrets") or [])
+        for group in ("containers", "initContainers", "ephemeralContainers"):
+            for container in pod_spec.get(group) or []:
+                refs.extend((x.get("secretRef") or {}).get("name")
+                            for x in container.get("envFrom") or [])
+                refs.extend(((x.get("valueFrom") or {}).get("secretKeyRef") or {}).get("name")
+                            for x in container.get("env") or [])
+        if secret_name in refs:
+            results.append({"kind": kind, "name": workload["metadata"]["name"],
+                            "route": "Pod template (may be scaled to zero)"})
+    return results
+
+
 def discover_gateways(ctx, ns, secret_name):
     # Discovery first distinguishes CRD-not-installed from request/RBAC errors.
     types = run(["kubectl", "--context", ctx, "--request-timeout=20s",
                  "api-resources", "-o", "name"]).decode().splitlines()
     if "gateways.gateway.networking.k8s.io" not in types:
         return [], "NOT_INSTALLED"
-    objects = kube_json(ctx, "-n", ns, "get", "gateways.gateway.networking.k8s.io")["items"]
+    # Cross-namespace Gateway certificateRefs may target this namespace.
+    objects = kube_json(ctx, "get", "gateways.gateway.networking.k8s.io", "-A")["items"]
     usages = []
     for g in objects:
         for listener in g.get("spec", {}).get("listeners") or []:
@@ -198,7 +233,8 @@ def discover_gateways(ctx, ns, secret_name):
                 if (ref.get("name") == secret_name and
                     ref.get("kind", "Secret") == "Secret" and
                     ref.get("group", "") == "" and
-                    ref.get("namespace", ns) == ns):
+                    ref.get("group", "") == "" and
+                    ref.get("namespace", g["metadata"]["namespace"]) == ns):
                     usages.append({
                         "kind": "Gateway", "name": g["metadata"]["name"],
                         "route": "listener/" + listener.get("name", "?") +
@@ -212,9 +248,11 @@ def dependency_report(ctx, ns, name):
     refs = ingress_references(ctx, ns).get(name, [])
     consumers = [{"kind": "Ingress", "name": ref["ingress"],
                   "route": "tls-host/" + ref["host"]} for ref in refs]
-    checks = {"ingress": "CHECKED", "pods": "CHECKED", "gateway": "CHECKED"}
+    checks = {"ingress": "CHECKED", "pods": "CHECKED",
+              "workloads": "CHECKED", "gateway": "CHECKED"}
     # Fail closed for RBAC and failed API operations: do not label unused.
     consumers.extend(owners_from_pods(ctx, ns, name))
+    consumers.extend(owners_from_workloads(ctx, ns, name))
     gateways, checks["gateway"] = discover_gateways(ctx, ns, name)
     consumers.extend(gateways)
     return {
@@ -226,8 +264,8 @@ def dependency_report(ctx, ns, name):
         "known_consumers": consumers,
         "check_coverage": checks,
         "consumer_count": len(consumers),
-        "limitation": "Only current Ingress, Gateway and Pod references checked. "
-                      "Controller templates, external LB, CSI and non-K8s consumers may exist.",
+        "limitation": "Observed Ingress, Gateway, Pod and standard workload templates checked. "
+                      "Custom controllers, external LB, CSI and non-K8s consumers may exist.",
     }
 
 

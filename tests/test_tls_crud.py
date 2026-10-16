@@ -72,7 +72,7 @@ class CrudSafetyTests(unittest.TestCase):
         pods = {"items": [{"spec": {"volumes": [{"secret": {"secretName": "demo-tls"}}]}}]}
         gw = {"items": [{"metadata": {"namespace": "demo"}, "spec": {"listeners": [
             {"tls": {"certificateRefs": [{"name": "demo-tls"}]}}]}}]}
-        with patch.object(m, "kube_json", side_effect=[ing, pods, gw]), \
+        with patch.object(m, "kube_json", side_effect=[ing, pods, {"items": []}, gw]), \
              patch.object(m, "kube", return_value=b"gateways.gateway.networking.k8s.io\n"):
             blockers = m.dependency_evidence("sandbox", "demo", "demo-tls")
         self.assertEqual(blockers, ["Gateway TLS certificateRef", "Ingress TLS reference", "Pod dependency"])
@@ -82,10 +82,10 @@ class CrudSafetyTests(unittest.TestCase):
         ing = {"items": []}
         pods = {"items": []}
         similar = b"malicious-gateways.gateway.networking.k8s.io\n"
-        with patch.object(m, "kube_json", side_effect=[ing, pods]) as read, \
+        with patch.object(m, "kube_json", side_effect=[ing, pods, {"items": []}]) as read, \
              patch.object(m, "kube", return_value=similar):
             self.assertEqual(m.dependency_evidence("sandbox", "demo", "demo-tls"), [])
-        self.assertEqual(read.call_count, 2)
+        self.assertEqual(read.call_count, 3)
 
     def test_detailed_dependency_evidence_identifies_exact_consumers(self):
         ingress = {"items": [{"metadata": {"name": "web", "namespace": "demo"},
@@ -95,12 +95,39 @@ class CrudSafetyTests(unittest.TestCase):
         gateway = {"items": [{"metadata": {"name": "edge", "namespace": "demo"},
                               "spec": {"listeners": [
                                   {"tls": {"certificateRefs": [{"name": "demo-tls"}]}}]}}]}
-        with patch.object(m, "kube_json", side_effect=[ingress, pods, gateway]), \
+        with patch.object(m, "kube_json", side_effect=[ingress, pods, {"items": []}, gateway]), \
              patch.object(m, "kube", return_value=b"gateways.gateway.networking.k8s.io\n"):
             found = m.dependency_evidence("sandbox", "demo", "demo-tls", detailed=True)
         self.assertEqual(found, ["Gateway TLS certificateRef: demo/edge",
                                  "Ingress TLS reference: demo/web",
                                  "Pod dependency: demo/web-76c"])
+
+    def test_dormant_deployment_and_cronjob_hold_delete(self):
+        # No active Pod exists; templates still guarantee future Secret use.
+        deploy = {"kind": "Deployment", "metadata": {"name": "sleeping", "namespace": "demo"},
+                  "spec": {"replicas": 0, "template": {"spec": {
+                      "containers": [{"name": "web", "envFrom": [
+                          {"secretRef": {"name": "demo-tls"}}]}]}}}}
+        cron = {"kind": "CronJob", "metadata": {"name": "scheduled", "namespace": "demo"},
+                "spec": {"suspend": True, "jobTemplate": {"spec": {"template": {
+                    "spec": {"volumes": [{"secret": {"secretName": "demo-tls"}}]}}}}}}
+        with patch.object(m, "kube_json", side_effect=[
+                {"items": []}, {"items": []}, {"items": [deploy, cron]}]), \
+             patch.object(m, "kube", return_value=b""):
+            refs = m.dependency_evidence("sandbox", "demo", "demo-tls", detailed=True)
+        self.assertEqual(refs, ["CronJob template reference: demo/scheduled",
+                                "Deployment template reference: demo/sleeping"])
+
+    def test_workload_scan_forbidden_or_malformed_fails_closed(self):
+        with patch.object(m, "kube_json", side_effect=[
+                {"items": []}, {"items": []}, m.Stop("RBAC denied")]):
+            with self.assertRaisesRegex(m.Stop, "RBAC denied"):
+                m.dependency_evidence("sandbox", "demo", "demo-tls")
+        with patch.object(m, "kube_json", side_effect=[
+                {"items": []}, {"items": []}, {"items": [
+                    {"kind": "Deployment", "spec": {}}]}]):
+            with self.assertRaisesRegex(m.Stop, "Malformed workload"):
+                m.dependency_evidence("sandbox", "demo", "demo-tls")
 
     def test_delete_ownership_reports_a_named_hold(self):
         target = obj()

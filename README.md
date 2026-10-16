@@ -40,7 +40,7 @@ Designed for **human-controlled infrastructure operations**: inspect before chan
 | **Prometheus textfile metrics** | Export aggregate expiration/audit gauges to a local .prom file | Export only; does not configure or push into Prometheus |
 | **Renew / Update** | Guided target discovery, selective READY/HOLD/SKIPPED review and renewal; optional single-target same-SAN CRUD Update | Fresh plans, authorized writes, encrypted backups, journaling, scoped recovery |
 | **Create** | Guided Create or plan-create/create commands | Validates supplied PEM/key, checks target absence, never overwrites |
-| **Delete / decommission** | Guided Delete or plan-delete/delete commands | **HOLD** when Ingress/Pod/Gateway references, ownership or visibility blocks safety; backup before deletion, API UID/resourceVersion preconditions |
+| **Delete / decommission** | Guided Delete or plan-delete/delete commands | **HOLD** when Ingress/Pod/Gateway/workload-template references, ownership or visibility blocks safety; backup before deletion, API UID/resourceVersion preconditions |
 | **Recovery & evidence** | Run history, HOLD review, HTTPS re-verification and guarded rollback flows | No blind retries after an uncertain mutation; private local artifacts |
 
 This is not an unattended controller. In particular, a clean Kubernetes reference scan **does not prove** a Secret is unused by external load balancers, proxies or integrations; a human must confirm external dependencies before Delete.
