@@ -1,0 +1,58 @@
+name: KAORI Python Quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.py"
+      - "ruff.toml"
+      - ".github/workflows/python-quality.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**/*.py"
+      - "ruff.toml"
+      - ".github/workflows/python-quality.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    name: Python Quality (Ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout history for change detection
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Detect changed Python files
+        id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          python3 scripts/ci/changed_python_quality.py detect \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --json-file "$RUNNER_TEMP/changed-python.json" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Set up Python
+        if: steps.changed.outputs.has_python == 'true'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install pinned Ruff
+        if: steps.changed.outputs.has_python == 'true'
+        run: python3 -m pip install --disable-pip-version-check "ruff==0.17.1"
+      - name: Ruff — changed Python files only
+        if: steps.changed.outputs.has_python == 'true'
+        run: |
+          python3 scripts/ci/changed_python_quality.py lint \
+            --json-file "$RUNNER_TEMP/changed-python.json"
