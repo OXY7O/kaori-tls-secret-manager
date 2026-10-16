@@ -13,7 +13,7 @@ The **Quality Gate** on pull requests and the merged main commit performs **chan
 
 The GitHub required status context remains `Quality Gate` regardless of selected scope. CodeQL and Ruff remain separate required branch checks; a docs-only PR cannot bypass those scans.
 
-After the main Quality Gate passes, **Publish Release** validates version metadata, packages the exact commit, checks archive readability and publishes SHA256SUMS. Published versions are not overwritten.
+After the main Quality Gate passes, **Release Preflight** checks version metadata and GitHub's existing tag/release with read-only permissions. If the immutable version is already complete, the write-capable **Publish Release** job is skipped entirely—no archive or checksum is rebuilt. For a genuinely new version, Publish Release rechecks eligibility after serialization, packages the exact commit, verifies the archive and publishes SHA256SUMS. Any API failure, pre-existing orphan tag or incomplete published release triggers a fail-closed stop; existing versions are never overwritten.
 
 ## What a source release does not certify
 
