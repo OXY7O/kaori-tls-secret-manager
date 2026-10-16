@@ -15,8 +15,10 @@ KAORI TLS Management follows [Semantic Versioning](https://semver.org/) using `v
 2. Change `VERSION`, update `CHANGELOG.md`, add `docs/releases/vX.Y.Z.md`, and update README/security/release policy to match actual verification.
 3. Run the offline GitHub Actions suite and review source provenance plus documentation. No automated production Kubernetes access is allowed.
 4. Merge the PR into `main` after offline gates succeed.
-5. GitHub Actions re-runs the same offline gate on the exact merged `main` commit. Only after PASS, its release job creates the immutable `vX.Y.Z` tag and publishes the source archive plus `SHA256SUMS`.
-6. Verify the GitHub Release is public, `prerelease=false`, tag target matches the merged commit and both assets exist. An existing release is **not overwritten**.
+5. GitHub Actions runs the **Quality Gate** on the merged `main` commit. After PASS, a lightweight **Release Preflight** reads the local version/release metadata and queries GitHub for the matching release/tag using a **read-only** token.
+6. If that version has already been published with both required assets, preflight emits `publish=false` and **Publish Release is skipped entirely** (no write-permission runner, full checkout, archive or checksum generation). If the existing release is incomplete, a tag exists without a release, or an API call fails, preflight **fails closed** rather than overwriting history.
+7. For a genuinely new version, preflight emits `publish=true`. The separate **Publish Release** job then checks eligibility **again after acquiring the release concurrency lock**, validates the exact version, archives the merged commit, verifies archive readability and publishes the immutable tag, archive and `SHA256SUMS`.
+8. Verify the new GitHub Release is public, `prerelease=false`, tag target matches the merged commit and both assets exist. An existing release is **never overwritten**.
 
 Use a **new version** for subsequent releases; never recycle an existing tag or rewrite existing assets. Checksums are integrity evidence, not publisher signatures.
 
