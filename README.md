@@ -70,6 +70,22 @@ bash scripts/tls-secret-manager.sh wizard --plain
 
 The guided interface starts automatically when you run the launcher without arguments. Select **Help** to explore features or **Exit** to leave. Accepting the default selection starts read-only Inventory, which accesses your selected Kubernetes context.
 
+### Recovery encryption with age (before Update/Delete)
+
+KAORI requires the `age` utility for **encrypted recovery backups**. The guided wizard can create your recovery identity on the first authorized Update/Delete **after** the plan and confirmations; a read-only plan or HOLD does not create a key.
+
+To prepare your own recovery key in advance (optional):
+
+~~~bash
+umask 077
+install -d -m 700 "$HOME/.config/kaori-tls"
+age-keygen -o "$HOME/.config/kaori-tls/recovery.agekey"
+chmod 600 "$HOME/.config/kaori-tls/recovery.agekey"
+age-keygen -y "$HOME/.config/kaori-tls/recovery.agekey"  # prints public recipient only
+~~~
+
+**Important:** Securely keep an independent copy of `recovery.agekey`, never commit or print its contents, and retain the `*-backup.age`, plan and journal after each operation. If the identity is lost, encrypted backups may be unrecoverable. See **[age setup & recovery guide](docs/AGE-RECOVERY.md)** for wizard steps, verification, troubleshooting and guarded Restore procedures.
+
 ### First read-only commands
 
 ~~~bash
@@ -90,7 +106,7 @@ Read-only CRUD results are JSON. The CRUD engine requires the global **--context
 
 ## Guided operations
 
-The interactive interface groups **Inventory**, **Expiry Audit**, **TLS Toolbox**, **HTTPS Verification**, **Renewal**, **HOLD Review**, **Run History**, **Create**, and **Delete** in one place. Select the operation by its displayed name; numeric shortcuts can change between versions.
+The interactive interface groups **Inventory**, **Expiry Audit**, **TLS Toolbox**, **HTTPS Verification**, **Renewal**, **HOLD Review**, **Run History**, **Create**, **Update**, **Delete**, **Delete Recovery / Restore**, and **Age help** in one place. Select the operation by its displayed name; numeric shortcuts can change between versions.
 
 For a new TLS Secret or HTTPS endpoint, use **TLS Toolbox → TLS Doctor**. **Reverify HTTPS** examines evidence from a previously saved renewal run.
 
