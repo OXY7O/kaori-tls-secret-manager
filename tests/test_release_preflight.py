@@ -34,11 +34,18 @@ def metadata(base, version="0.1.2"):
 
 def published(version="0.1.2"):
     return {"draft": False, "prerelease": False,
-            "assets": [{"name": "kaori-tls-management-v" + version + ".tar.gz"},
+            "assets": [{"name": "kaori-tls-secret-manager-v" + version + ".tar.gz"},
                        {"name": "SHA256SUMS"}]}
 
 
 class ReleasePreflightTests(unittest.TestCase):
+    def test_release_workflow_uses_canonical_name_for_title_and_archive(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn('KAORI TLS Secret Manager ${TAG}', workflow)
+        self.assertIn('kaori-tls-secret-manager-${TAG}.tar.gz', workflow)
+        self.assertNotIn("KAORI TLS Management", workflow)
+        self.assertNotIn("kaori-tls-management-", workflow)
+
     def test_published_version_skips_packaging_without_tag_probe(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(
             gate, "github_get", return_value=(200, published())
@@ -146,7 +153,7 @@ class ReleasePreflightTests(unittest.TestCase):
 
     def test_active_repository_has_a_complete_immutable_release(self):
         # No network: verifies the checked-out version, changelog and local assets.
-        self.assertEqual(gate.release_version(ROOT), "0.2.4")
+        self.assertEqual(gate.release_version(ROOT), "0.2.5")
 
 
 if __name__ == "__main__":
