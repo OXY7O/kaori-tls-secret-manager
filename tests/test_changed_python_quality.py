@@ -61,10 +61,8 @@ class ChangedPythonQualityTests(unittest.TestCase):
     def test_lint_uses_no_shell_and_preserves_ruff_exit_code(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            target = root / "test_cli.py"
-            target.write_text("print('synthetic')\n", encoding="utf-8")
             payload = root / "changed.json"
-            payload.write_text(json.dumps([str(target)]))
+            payload.write_text(json.dumps(["tests/test_changed_python_quality.py"]))
             with patch.object(quality.subprocess, "run",
                               return_value=subprocess.CompletedProcess([], 1)) as cmd:
                 code = quality.lint_files(payload)
