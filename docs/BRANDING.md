@@ -1,23 +1,37 @@
 # KAORI visual identity
 
-**KAORI TLS Management** uses a distinctive orbital-K identity: a kinetic K monogram with an orbiting connection endpoint. The wordmark and icon are supplied as transparent PNG files.
+**KAORI TLS Management** deliberately separates public documentation branding from the icon used **inside interactive CLI terminals**.
 
-## PNG assets
+## Assets
 
-| Asset | Purpose |
+| Asset | Scope |
 | --- | --- |
-| [kaori-logo.png](../assets/kaori-logo.png) | Official wordmark for the GitHub README and documentation |
-| [kaori-mark.png](../assets/kaori-mark.png) | Compact orbital-K icon for community assets and terminal artwork |
+| [kaori-logo.png](../assets/kaori-logo.png) | Original README/documentation wordmark; unchanged |
+| [kaori-mark.png](../assets/kaori-mark.png) | Original public square orbital-K mark; unchanged |
+| [kaori-cli-mark.png](../assets/kaori-cli-mark.png) | **Approved violet four-petal terminal header icon**, optimized from the supplied original |
 
-The PNG files are the distributed image source of truth; the README uses PNG, not an SVG logo.
+The new purple mark is the header-icon standard for **future KAORI command-line tools**. It does not replace website, README, or other product imagery.
 
-## In the utility
+## Reusable terminal renderer
 
-The interactive wizard's previous oversized KAORI ASCII wordmark has been replaced by **the actual PNG** when launched in a compatible **iTerm2 terminal**, using the terminal's inline-image protocol. Other terminals automatically display a visually corresponding **orbital-K** text mark without external dependencies, image viewers or Kubernetes access.
+[terminal_branding.py](../scripts/kubernetes/tls-secret-manager/terminal_branding.py) exports `render_header(product, subtitle, ...)`. The TLS wizard invokes it; other KAORI terminal tools can reuse the same module or asset and behavior, rather than drawing their own ASCII logos.
 
-- \`--plain\` and \`NO_COLOR\` use a readable ANSI-free text fallback.
-- Redirected output, dumb terminals and missing/corrupt logo files never receive inline-image escape sequences.
-- \`KAORI_NO_IMAGE=1\` explicitly disables inline PNG rendering when an iTerm2 session needs the text fallback.
-- No decorative terminal data is injected into machine-readable CRUD JSON or non-interactive help.
+- **iTerm2 + interactive color:** embed the approved PNG using supported OSC 1337 inline-image control at a compact `18x9` terminal-cell size.
+- **Other interactive color terminals:** use ANSI half-block art derived from the same image, with 24-bit or 256-color palettes and no external Python dependencies.
+- **No-color/plain, dumb, narrow, or redirected output:** print a compact ASCII-only header with no escape sequences.
+- **`KAORI_NO_IMAGE=1`:** disable native iTerm2 PNG while retaining the colored ANSI pixel-art fallback.
+- **`wizard --plain`, `NO_COLOR`, `CLICOLOR=0`:** no inline image or ANSI art.
+- Never decorate JSON, subcommand help, pipelines or machine-readable output; the renderer is a UI-only concern.
 
-For consistent sizing, use the logo in a wide aspect ratio and the mark for square displays. Never distort their proportions or imply endorsement by another project.
+For future CLI entrypoints:
+
+```python
+import sys
+from terminal_branding import render_header
+
+# Call only in the interactive human-facing menu.
+render_header("KAORI", "MY CLI TOOL",
+              color=sys.stdout.isatty(), unicode=True)
+```
+
+No branding routine may contact a cluster, install packages or mutate credentials. Test actual color TTY and plain mode before adoption.
