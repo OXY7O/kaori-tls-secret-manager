@@ -3,20 +3,43 @@ on:
   push:
     branches: [main, "feat/**"]
   pull_request:
+  schedule:
+    # Weekly baseline Monday 10:00 Asia/Jakarta (03:00 UTC).
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
   quality_gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout complete diff history
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Select impact-aware validation
+        id: impact
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          HEAD_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 scripts/ci/impact_gate.py detect \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --event "$EVENT_NAME" \
+            --output "$GITHUB_OUTPUT" \
+            --plan "$RUNNER_TEMP/impact-plan.json"
       - name: Setup Python
+        if: steps.impact.outputs.mode != 'docs'
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Syntax Checks
+      - name: Full syntax validation for runtime/security changes
+        if: steps.impact.outputs.run_syntax == 'true'
         run: |
           python3 -m py_compile scripts/tls_crud.py \
             scripts/kubernetes/tls-secret-manager/tls_secret_manager.py \
@@ -25,15 +48,18 @@ jobs:
             scripts/kubernetes/tls-secret-manager/tls_ops.py
           bash -n scripts/tls-secret-manager.sh scripts/kaori-tls-secret-manager.sh \
             scripts/kubernetes/tls-secret-manager/tls-secret-manager.sh
-      - name: Regression Tests
-        run: python3 -m unittest discover -s tests -v
-      - name: CLI Smoke Tests
+      - name: Selected or full synthetic regression
+        run: |
+          python3 scripts/ci/impact_gate.py test \
+            --plan "$RUNNER_TEMP/impact-plan.json"
+      - name: Full CLI smoke tests for runtime/security changes
+        if: steps.impact.outputs.run_smoke == 'true'
         run: |
           bash scripts/tls-secret-manager.sh doctor
           bash scripts/tls-secret-manager.sh --help
           bash scripts/tls-secret-manager.sh crud --help
           bash scripts/tls-secret-manager.sh wizard --help
-      - name: Cluster Isolation
+      - name: Cluster Isolation (always)
         run: |
           test -z "${KUBECONFIG:-}"
           echo 'No real cluster or Secret write permitted in CI.'
