@@ -27,3 +27,7 @@ python3 -m unittest tests/test_changed_python_quality.py
 A failed Ruff check must be fixed before merging the associated PR. Ruff never runs with `--fix` in CI. Do not suppress findings, loosen rules or widen check scope just to obtain a green status without review.
 
 **GitHub branch protection:** the active `main-branch-protection` ruleset requires `Quality Gate`, `CodeQL (python)`, `CodeQL (actions)`, and `Python Quality (Ruff)` from GitHub Actions. Keep PR-level path filters **disabled** on the Ruff workflow. The job uses internal change detection, reports success on documentation-only PRs without setting up Python or installing Ruff, and genuinely fails for Ruff violations in modified Python files. CodeQL continues running on every PR. Push-level path filters remain enabled solely to avoid unnecessary post-merge Ruff jobs. Do not add `Publish Release` or conditional/post-merge alert inventory jobs as required checks.
+
+## Required-check smoke test: documentation-only pull request
+
+A documentation-only pull request provides a useful regression check for required status-check wiring: all four required contexts should be present, but the Ruff job must skip Python setup, dependency installation, and lint execution when no Python files changed. Check the job's `Python files affected by this change: 0` output. This tests branch-protection readiness without touching live Kubernetes configuration or TLS material.
