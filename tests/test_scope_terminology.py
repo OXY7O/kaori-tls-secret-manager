@@ -52,7 +52,7 @@ class ScopeTerminologyTests(unittest.TestCase):
 
     def test_versioned_release_notes_include_current_scope(self):
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-        self.assertRegex(version, r"^\\d+\\.\\d+\\.\\d+$")
+        self.assertRegex(version, r"^\d+\.\d+\.\d+$")
         notes = (ROOT / f"docs/releases/v{version}.md").read_text(encoding="utf-8")
         self.assertIn("KAORI TLS Secret Manager", notes)
 
