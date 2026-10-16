@@ -36,3 +36,7 @@ The minimum safety check (no `KUBECONFIG` in CI) **always runs**, even for a Mar
 Look for the `IMPACT_PLAN` line in each **Quality Gate** run. It records `mode`, `reason` and selected test modules. Compare `docs` and `selected` duration against `full` before expanding the mapping. Because the check name is **Quality Gate** for every mode, the existing required-check ruleset stays compatible.
 
 Avoid deleting important safety tests or reducing assertions to make CI faster. Security-critical false negatives are more expensive than a full run.
+
+## Verification scenario — documentation-only PR
+
+To validate the policy end to end, edit only this documentation page and open a PR against `main`. In the always-present **Quality Gate**, check that `IMPACT_PLAN` reports `"mode": "docs"`; it should run documentation integrity tests, skip Python setup, source syntax checks and CLI smoke, but still perform Cluster Isolation. Required CodeQL and Ruff checks must still PASS independently.
