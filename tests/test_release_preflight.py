@@ -104,7 +104,7 @@ class ReleasePreflightTests(unittest.TestCase):
 
     def test_http_403_fails_closed_and_404_is_explicitly_absent(self):
         def fail(code):
-            raise urllib.error.HTTPError("https://api.github.com/fixture", code,
+            return urllib.error.HTTPError("https://api.github.com/fixture", code,
                                          "Synthetic", {}, io.BytesIO(b"{}"))
 
         with patch.object(gate.urllib.request, "urlopen", side_effect=fail(403)):
