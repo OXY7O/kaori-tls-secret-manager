@@ -5,7 +5,7 @@ KAORI uses **Ruff** as an open-source, repo-owned Python linter. The GitHub prod
 ## Scope and cost controls
 
 - Workflow: [KAORI Python Quality](../.github/workflows/python-quality.yml), separate from CodeQL SAST and the established `Quality Gate`.
-- Runs only for **pull requests to main** or **pushes to main** that touch a Python file, `ruff.toml`, or the quality workflow.
+- The **Python Quality (Ruff)** status check runs on **every pull request targeting `main`**, including documentation-only changes, because GitHub branch protection requires this check. Pushes to `main` remain path-filtered to Python source or Ruff/workflow configuration changes.
 - Within the workflow, checks **only existing Python files changed** between the base and the new commit, including renamed files. Deleted files, Markdown, shell files, and unchanged Python files are not linted.
 - A workflow run with no Python file changes skips **Python setup, Ruff installation and lint execution**. This does not claim GitHub Actions runner startup is free.
 - Shallow-history ambiguity is avoided using `fetch-depth: 0`; missing/bad Git SHAs cause detection to fail instead of silently skipping.
@@ -26,4 +26,4 @@ python3 -m unittest tests/test_changed_python_quality.py
 
 A failed Ruff check must be fixed before merging the associated PR. Ruff never runs with `--fix` in CI. Do not suppress findings, loosen rules or widen check scope just to obtain a green status without review.
 
-**GitHub branch protection:** `Quality Gate` remains required. To enforce the new job independently, an administrator can add `Python Quality (Ruff)` as a required check, but only after considering the behavior of **path-filtered workflows**: a required check skipped entirely by workflow path filters can block unrelated PRs. If promoting this job to required, remove event-level `paths` and keep the lightweight internal change detection and conditional Ruff installation so the check reports success for docs-only PRs.
+**GitHub branch protection:** the active `main-branch-protection` ruleset requires `Quality Gate`, `CodeQL (python)`, `CodeQL (actions)`, and `Python Quality (Ruff)` from GitHub Actions. Keep PR-level path filters **disabled** on the Ruff workflow. The job uses internal change detection, reports success on documentation-only PRs without setting up Python or installing Ruff, and genuinely fails for Ruff violations in modified Python files. CodeQL continues running on every PR. Push-level path filters remain enabled solely to avoid unnecessary post-merge Ruff jobs. Do not add `Publish Release` or conditional/post-merge alert inventory jobs as required checks.
