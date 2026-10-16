@@ -260,11 +260,39 @@ class CrudSafetyTests(unittest.TestCase):
                 "plan_id": plan["plan_id"], "status": "MUTATION_UNCERTAIN"}))
             with patch.object(m, "context_uid", return_value="cluster1"), \
                  patch.object(m, "find_target", return_value=None), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "ns1"}}), \
                  patch.object(m, "kube", side_effect=AssertionError("Never mutate during reconcile")):
                 result = m.delete_recovery_evidence(args(plan=str(planpath)))
             self.assertEqual(result["observation"], "OBSERVED_ABSENT")
             self.assertEqual(result["journal_status"], "MUTATION_UNCERTAIN")
             self.assertFalse(result["restore_eligible"])
+
+    def test_reconcile_eligibility_requires_backup_and_namespace_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            planpath, plan = m.write_plan(tmp, {
+                "action": "DELETE", "context": "sandbox", "cluster_uid": "cluster1",
+                "namespace_uid": "ns1", "namespace": "demo", "secret": "demo-tls",
+                "uid": "old", "resource_version": "7", "old_fingerprint": "fp"})
+            (Path(tmp) / f"delete-{plan['plan_id']}-journal.json").write_text(json.dumps({
+                "action": "DELETE", "plan_id": plan["plan_id"],
+                "status": "COMPLETE_ABSENCE_VERIFIED", "prior_uid": "old"}))
+            backup = Path(tmp) / f"delete-{plan['plan_id']}-backup.age"
+            with patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "find_target", return_value=None), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "ns1"}}):
+                missing = m.delete_recovery_evidence(args(plan=str(planpath)))
+                self.assertFalse(missing["restore_eligible"])
+                self.assertFalse(missing["backup_present"])
+                backup.write_bytes(b"SYNTHETIC ENCRYPTED MATERIAL")
+                backup.chmod(0o600)
+                eligible = m.delete_recovery_evidence(args(plan=str(planpath)))
+                self.assertTrue(eligible["restore_eligible"])
+            with patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "find_target", return_value=None), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "changed-ns"}}):
+                drift = m.delete_recovery_evidence(args(plan=str(planpath)))
+                self.assertFalse(drift["restore_eligible"])
+                self.assertFalse(drift["namespace_identity_match"])
 
     def test_restore_blocks_unknown_delete_journal_without_write(self):
         with tempfile.TemporaryDirectory() as tmp:

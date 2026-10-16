@@ -709,16 +709,30 @@ def delete_recovery_evidence(args):
     else:
         observation = "DIFFERENT_UID_PRESENT"
     backup_path = planfile.with_name(f"delete-{plan['plan_id']}-backup.age")
+    backup_present = (backup_path.is_file() and not backup_path.is_symlink() and
+                      backup_path.stat().st_mode & 0o077 == 0)
+    # Read-only menu eligibility must mirror the guarded backend, rather than
+    # inviting the operator to Restore when essential recovery inputs are missing.
+    journal_verified = bool(
+        journal_status == "COMPLETE_ABSENCE_VERIFIED" and
+        journal_path.is_file() and
+        journal.get("prior_uid") == plan["uid"])
+    namespace_matched = False
+    if plan.get("namespace_uid"):
+        namespace_obj = kube_json(args.context, "get", "namespace",
+                                  args.namespace, "-o", "json")
+        namespace_matched = ((namespace_obj.get("metadata") or {}).get("uid") ==
+                             plan["namespace_uid"])
     return {
         "status": "READ_ONLY_RECONCILIATION", "observation": observation,
         "journal_status": journal_status, "plan_id": plan["plan_id"],
         "target": f"{plan['namespace']}/{plan['secret']}",
         "cluster_context": plan["context"],
-        "backup_present": backup_path.is_file() and not backup_path.is_symlink(),
-        "restore_eligible": bool(
-            observation == "OBSERVED_ABSENT" and
-            journal_status == "COMPLETE_ABSENCE_VERIFIED" and
-            plan.get("namespace_uid")),
+        "namespace_identity_match": namespace_matched,
+        "backup_present": backup_present,
+        "restore_eligible": bool(observation == "OBSERVED_ABSENT" and
+                                 journal_verified and backup_present and
+                                 namespace_matched),
         "note": "Observation is not proof of safe restore. No mutation performed.",
     }
 
@@ -804,6 +818,12 @@ def restore_deleted_secret(args):
             (observed.get("metadata") or {}).get("resourceVersion"),
             "Restored Secret identity unverified")
     require(observed.get("data") == data, "Restored Secret TLS data differs from backup")
+    # Namespace replacement during the create/verify window must not be
+    # incorrectly recorded as a successful recovery of the reviewed scope.
+    observed_namespace = kube_json(args.context, "get", "namespace",
+                                   args.namespace, "-o", "json")
+    require((observed_namespace.get("metadata") or {}).get("uid") ==
+            plan["namespace_uid"], "Namespace identity changed during Restore")
     audit.update(status="COMPLETE_SECRET_RESTORED", completed_utc=datetime.now(UTC).isoformat(),
                  uid=observed["metadata"]["uid"],
                  resource_version=observed["metadata"]["resourceVersion"],
