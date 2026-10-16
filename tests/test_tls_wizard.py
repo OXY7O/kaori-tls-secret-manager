@@ -426,47 +426,49 @@ class WizardTests(unittest.TestCase):
             w.main_menu(args)
         self.assertIn("Menu closed", captured.getvalue())
 
-    def test_brand_logo_uses_png_only_on_supported_interactive_terminal(self):
+    def test_brand_logo_uses_approved_cli_png_on_iterm(self):
         from io import StringIO
         class TtyBuffer(StringIO):
             def isatty(self):
                 return True
         output = TtyBuffer()
-        logo_bytes = w.BRAND_LOGO_FILE.read_bytes()
-        self.assertTrue(logo_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
         with patch.object(w.sys, "stdout", output), \
              patch.object(w, "USE_COLOR", True), \
-             patch.dict(w.os.environ, {"TERM_PROGRAM": "iTerm.app"}, clear=False):
+             patch.object(w, "USE_ICONS", True), \
+             patch.dict(w.os.environ, {"TERM_PROGRAM": "iTerm.app", "TERM": "xterm-256color"},
+                        clear=False):
             w.brand_banner()
-        rendered = output.getvalue()
-        self.assertIn("\x1b]1337;File=inline=1;", rendered)
-        self.assertNotIn("       .------.", rendered)
+        self.assertIn("\x1b]1337;File=inline=1;", output.getvalue())
+        self.assertIn("KAORI  |  TLS MANAGEMENT", output.getvalue())
 
-    def test_brand_logo_never_emits_inline_binary_in_plain_mode(self):
+    def test_brand_logo_never_emits_control_sequences_in_plain_mode(self):
         from contextlib import redirect_stdout
         from io import StringIO
         w.setup_display(plain=True)
         with patch.dict(w.os.environ, {"TERM_PROGRAM": "iTerm.app"}, clear=False), \
              redirect_stdout(StringIO()) as out:
             w.brand_banner()
-        self.assertNotIn("\x1b]1337", out.getvalue())
-        self.assertNotIn("\x1b[", out.getvalue())
-        self.assertIn("  TLS MANAGEMENT", out.getvalue())
+        self.assertNotIn("\x1b", out.getvalue())
+        self.assertIn("TLS MANAGEMENT", out.getvalue())
+        self.assertIn("[KAORI]", out.getvalue())
 
-    def test_brand_falls_back_cleanly_when_png_missing(self):
+    def test_brand_falls_back_to_colored_pixel_mark_without_iterm(self):
         from io import StringIO
         class TtyBuffer(StringIO):
             def isatty(self):
                 return True
         output = TtyBuffer()
-        with patch.object(w, "BRAND_LOGO_FILE", Path("/nonexistent/kaori-logo.png")), \
+        with patch.object(w.sys, "stdout", output), \
              patch.object(w, "USE_COLOR", True), \
-             patch.object(w.sys, "stdout", output), \
-             patch.dict(w.os.environ, {"TERM_PROGRAM": "iTerm.app"}, clear=False):
+             patch.object(w, "USE_ICONS", True), \
+             patch.dict(w.os.environ, {"TERM_PROGRAM": "vscode", "TERM": "xterm-256color"},
+                        clear=False):
             w.brand_banner()
-        self.assertIn("KAORI", output.getvalue())
-        self.assertIn("       .------.", output.getvalue())
+        self.assertIn("\x1b[", output.getvalue())
+        self.assertIn("▀", output.getvalue())
+        self.assertIn("TLS MANAGEMENT", output.getvalue())
         self.assertNotIn("\x1b]1337", output.getvalue())
+        self.assertNotIn(".------.", output.getvalue())
 
     def test_toolbox_menu_help_never_checks_cluster(self):
         from contextlib import redirect_stdout

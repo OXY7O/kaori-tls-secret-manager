@@ -146,7 +146,7 @@ class ReleasePreflightTests(unittest.TestCase):
 
     def test_active_repository_has_a_complete_immutable_release(self):
         # No network: verifies the checked-out version, changelog and local assets.
-        self.assertEqual(gate.release_version(ROOT), "0.2.0")
+        self.assertEqual(gate.release_version(ROOT), "0.2.1")
 
 
 if __name__ == "__main__":

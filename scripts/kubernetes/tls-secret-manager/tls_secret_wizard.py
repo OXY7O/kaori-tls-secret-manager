@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Interactive, fail-closed Kubernetes TLS Secret renewal operator wizard."""
 import argparse
-import base64
 import csv
 from datetime import datetime, timezone, timedelta
 import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 import uuid
+
+from terminal_branding import render_header
 
 from tls_secret_manager import (
     Stop, check, covers, read_staged_targets, read_endpoint_targets,
@@ -20,7 +20,6 @@ from tls_secret_manager import (
 
 HERE = Path(__file__).resolve().parent
 WRAPPER = HERE / "tls-secret-manager.sh"
-BRAND_LOGO_FILE = HERE.parents[2] / "assets" / "kaori-logo.png"
 
 
 # ANSI is enabled only on an interactive color-capable terminal. Text labels
@@ -143,54 +142,10 @@ def header(title):
 
 
 
-def _terminal_inline_png():
-    """Display the distributed PNG only where an image protocol is confirmed.
-
-    iTerm2 supports the OSC 1337 inline-image sequence. Other terminals get a
-    compact representation of the orbital-K mark, not raw escape payloads.
-    """
-    if (not USE_COLOR or not sys.stdout.isatty()
-            or os.environ.get("TERM_PROGRAM") != "iTerm.app"
-            or os.environ.get("KAORI_NO_IMAGE") == "1"):
-        return False
-    try:
-        data = BRAND_LOGO_FILE.read_bytes()
-    except OSError:
-        return False
-    if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > 256_000:
-        return False
-    encoded = base64.b64encode(data).decode("ascii")
-    print("\033]1337;File=inline=1;width=66;preserveAspectRatio=1:"
-          + encoded + "\a")
-    return True
-
-
 def brand_banner():
-    """Render the Kaori TLS Management PNG, with a portable text fallback."""
-    width = shutil.get_terminal_size(fallback=(80, 24)).columns
-    print()
-    if _terminal_inline_png():
-        return
-    # Text analogue of the orbital-K emblem for non-image terminals.
-    # Never send PNG control sequences to redirected, plain or dumb output.
-    if width >= 43:
-        orbit = (
-            "       .------.        ",
-            "    .-'   / /  '-.     ",
-            "   /    |/ /      \\    ",
-            "  |     | /___   (o)   ",
-            "   \\    | \\   _/      ",
-            "    '-. |  \\-'         ",
-            "       '------'         ",
-        )
-        for line in orbit:
-            print("  " + paint(line, 36))
-    else:
-        print("  " + paint("[K]", 36))
-    print("  " + paint("KAORI", 1))
-    print("  " + paint("TLS MANAGEMENT", 1))
-    print("  " + paint(("-" if not USE_ICONS else "─")
-                       * max(12, min(44, width - 4)), 36))
+    """Render the reusable purple KAORI terminal mark; no cluster access."""
+    return render_header("KAORI", "TLS MANAGEMENT",
+                         color=USE_COLOR, unicode=USE_ICONS)
 
 
 def menu_entry(number, title, *, default=False, caution=False):
