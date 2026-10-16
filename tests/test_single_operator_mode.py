@@ -17,7 +17,7 @@ spec = importlib.util.spec_from_file_location("kaori_crud_one_operator", CODE)
 crud = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(crud)
 sys.path.insert(0, str(ROOT / "scripts" / "kubernetes" / "tls-secret-manager"))
-import tls_secret_wizard as wizard
+wizard = importlib.import_module("tls_secret_wizard")
 
 
 def cli_args(**kw):

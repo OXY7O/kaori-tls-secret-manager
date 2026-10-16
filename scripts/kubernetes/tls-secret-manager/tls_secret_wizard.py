@@ -28,6 +28,21 @@ BRAND_LOGO_FILE = HERE.parents[2] / "assets" / "kaori-logo.png"
 USE_COLOR = False
 USE_ICONS = False
 STATUS_GUIDE = {
+    "COMPLETE_SECRET_VERIFIED": (
+        "Create or Update stored TLS certificate/key verified", "create/update-*-journal.json",
+        "Verify Ingress and HTTPS separately; a stored Secret does not prove served HTTPS."),
+    "COMPLETE_ABSENCE_VERIFIED": (
+        "Delete completed; original Secret absent", "delete-*-journal.json",
+        "Preserve encrypted age backup and recovery identity; test workloads separately."),
+    "COMPLETE_SECRET_RESTORED": (
+        "Previous deleted Secret recreated from protected age backup", "restore-*-journal.json",
+        "Secret has a new UID; independently verify consumers, trust and HTTPS."),
+    "MUTATION_UNCERTAIN": (
+        "API write outcome ambiguous; neither success nor proof of failure", "*-journal.json",
+        "STOP: read-only reconciliation, never blind retry or restore from uncertain Delete."),
+    "READ_ONLY_RECONCILIATION": (
+        "Current Kubernetes state inspected without a write", "delete-*-plan.json",
+        "Observed absence alone cannot authorize recovery; inspect original journal."),
     "SECRET_UPDATED_ENDPOINT_UNVERIFIED": (
         "Certificate updated but HTTPS verification has not passed", "execution-journal.json",
         "Inspect the live Secret and endpoint. Run verify-endpoints; do not repeat renewal."),
