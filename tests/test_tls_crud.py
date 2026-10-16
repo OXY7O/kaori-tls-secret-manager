@@ -307,7 +307,7 @@ class CrudSafetyTests(unittest.TestCase):
                  patch.object(m, "kube", side_effect=write):
                 result = m.restore_deleted_secret(target)
             self.assertEqual(result["status"], "COMPLETE_SECRET_RESTORED")
-            self.assertEqual(writes[0][0][1], "create")
+            self.assertEqual(writes[0][0][2], "create")
             sent = json.loads(writes[0][1]["payload"])
             self.assertEqual(sent["data"], original["data"])
             self.assertNotIn("uid", sent["metadata"])

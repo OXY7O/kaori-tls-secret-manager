@@ -838,6 +838,7 @@ def main(argv=None):
             sub.add_argument("--confirm-target", required=True)
             sub.add_argument("--operator-mode", action="store_true")
             sub.add_argument("--operator-ack", required=True)
+        if cmd in ("create", "update", "delete"):
             sub.add_argument("--approve", required=True, help="Exact immutable plan ID")
             sub.add_argument("--confirm-target", required=True, help="Exact namespace/secret")
             sub.add_argument("--approval-record",

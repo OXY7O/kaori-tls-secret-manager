@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT))
 spec = importlib.util.spec_from_file_location("tls_ops_tests", ROOT / "tls_ops.py")
 ops = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ops)
-import tls_secret_manager as helper
+helper = importlib.import_module("tls_secret_manager")
 
 FP_A = "a" * 64
 FP_B = "b" * 64

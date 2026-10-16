@@ -15,7 +15,7 @@ sys.path.insert(0, str(TOOLDIR))
 spec = importlib.util.spec_from_file_location("tlswizard_test", TOOLDIR / "tls_secret_wizard.py")
 w = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(w)
-import tls_secret_manager as m
+m = importlib.import_module("tls_secret_manager")
 
 OLD = "a" * 64
 NEW = "b" * 64
@@ -229,11 +229,13 @@ class WizardTests(unittest.TestCase):
         self.assertIn("11. Delete TLS Secret", captured.getvalue())
 
     def test_guided_recovery_refuses_unknown_journal_before_write(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
         args = types.SimpleNamespace(context=None)
         data = {"target": "sandbox/demo", "observation": "OBSERVED_ABSENT",
                 "journal_status": "MUTATION_UNCERTAIN", "backup_present": True,
                 "restore_eligible": False, "plan_id": "testplan"}
-        with patch.object(w, "exec_read", return_value="dev-context\\n"), \
+        with patch.object(w, "exec_read", return_value="dev-context\n"), \
              patch.object(w, "choose", return_value="dev-context"), \
              patch.object(w, "ask", side_effect=["sandbox", "demo", "/tmp/demo-plan.json"]), \
              patch.object(w.Path, "is_file", return_value=True), \
