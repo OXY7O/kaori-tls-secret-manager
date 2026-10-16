@@ -238,6 +238,82 @@ class CrudSafetyTests(unittest.TestCase):
             journal = json.loads((Path(tmp) / f"delete-{plan['plan_id']}-journal.json").read_text())
             self.assertEqual(journal["status"], "MUTATION_UNCERTAIN")
 
+    def test_delete_recovery_reconcile_never_mutates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            planpath, plan = m.write_plan(tmp, {
+                "action": "DELETE", "context": "sandbox", "cluster_uid": "cluster1",
+                "namespace_uid": "ns1", "namespace": "demo", "secret": "demo-tls",
+                "uid": "old", "resource_version": "7", "old_fingerprint": "fp"})
+            journal = Path(tmp) / f"delete-{plan['plan_id']}-journal.json"
+            journal.write_text(json.dumps({"action": "DELETE",
+                "plan_id": plan["plan_id"], "status": "MUTATION_UNCERTAIN"}))
+            with patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "find_target", return_value=None), \
+                 patch.object(m, "kube", side_effect=AssertionError("Never mutate during reconcile")):
+                result = m.delete_recovery_evidence(args(plan=str(planpath)))
+            self.assertEqual(result["observation"], "OBSERVED_ABSENT")
+            self.assertEqual(result["journal_status"], "MUTATION_UNCERTAIN")
+            self.assertFalse(result["restore_eligible"])
+
+    def test_restore_blocks_unknown_delete_journal_without_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            planpath, plan = m.write_plan(tmp, {
+                "action": "DELETE", "context": "sandbox", "cluster_uid": "cluster1",
+                "namespace_uid": "ns1", "namespace": "demo", "secret": "demo-tls",
+                "uid": "old", "resource_version": "7", "old_fingerprint": "fp"})
+            (Path(tmp) / f"delete-{plan['plan_id']}-journal.json").write_text(json.dumps({
+                "action": "DELETE", "plan_id": plan["plan_id"],
+                "status": "MUTATION_UNCERTAIN", "prior_uid": "old"}))
+            target = args(plan=str(planpath), operator_mode=True, approve=plan["plan_id"],
+                          confirm_target="demo/demo-tls", operator_ack="RESTORE demo/demo-tls")
+            with patch.object(m.sys.stdin, "isatty", return_value=True), \
+                 patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "ns1"}}), \
+                 patch.object(m, "kube", side_effect=AssertionError("No write on uncertain state")):
+                with self.assertRaisesRegex(m.Stop, "not verified complete"):
+                    m.restore_deleted_secret(target)
+
+    def test_restore_is_create_only_and_verifies_original_encrypted_backup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            planpath, plan = m.write_plan(tmp, {
+                "action": "DELETE", "context": "sandbox", "cluster_uid": "cluster1",
+                "namespace_uid": "ns1", "namespace": "demo", "secret": "demo-tls",
+                "uid": "uid-demo-1", "resource_version": "20", "old_fingerprint": "fp"})
+            original = obj()
+            (Path(tmp) / f"delete-{plan['plan_id']}-journal.json").write_text(json.dumps({
+                "action": "DELETE", "plan_id": plan["plan_id"],
+                "status": "COMPLETE_ABSENCE_VERIFIED", "prior_uid": "uid-demo-1"}))
+            ciphertext = Path(tmp) / f"delete-{plan['plan_id']}-backup.age"
+            ciphertext.write_bytes(b"ENCRYPTED TEST FIXTURE")
+            ciphertext.chmod(0o600)
+            identity = Path(tmp) / "recovery.agekey"
+            identity.write_text("SYNTHETIC IDENTITY")
+            identity.chmod(0o600)
+            restored = {**original, "metadata": {
+                **original["metadata"], "uid": "new-uid", "resourceVersion": "25"}}
+            target = args(plan=str(planpath), operator_mode=True, approve=plan["plan_id"],
+                          confirm_target="demo/demo-tls", operator_ack="RESTORE demo/demo-tls",
+                          backup_identity=str(identity))
+            writes = []
+            def write(ctx, *argv, **kw):
+                writes.append((argv, kw))
+                return b"{}"
+            with patch.object(m.sys.stdin, "isatty", return_value=True), \
+                 patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "ns1"}}), \
+                 patch.object(m, "find_target", side_effect=[None, None, restored]), \
+                 patch.object(m, "call", return_value=m.canonical(original)), \
+                 patch.object(m, "fingerprint_from_der_or_pem", return_value="fp"), \
+                 patch.object(m, "kube", side_effect=write):
+                result = m.restore_deleted_secret(target)
+            self.assertEqual(result["status"], "COMPLETE_SECRET_RESTORED")
+            self.assertEqual(writes[0][0][1], "create")
+            sent = json.loads(writes[0][1]["payload"])
+            self.assertEqual(sent["data"], original["data"])
+            self.assertNotIn("uid", sent["metadata"])
+            journal = json.loads(Path(result["journal"]).read_text())
+            self.assertNotIn("tls.key", json.dumps(journal))
+
     def test_create_submit_does_not_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             planpath, plan = m.write_plan(tmp, {"action": "CREATE", "context": "sandbox", "cluster_uid": "cluster",

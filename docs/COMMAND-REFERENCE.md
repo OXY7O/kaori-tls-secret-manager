@@ -24,7 +24,7 @@ bash scripts/tls-secret-manager.sh wizard --context APPROVED_CONTEXT \
 
 Wizard options: **--context**, **--workspace**, **--cert**, **--key**, **--ca-bundle**, **--reviewed-holds**, **--review-plan**, **--plain**. With no argument, the wizard uses interactive prompts. At the first prompt, **Enter defaults to Inventory**; select **Help** or **Exit** to explore without initiating discovery.
 
-**Available guided capabilities:** Inventory, Expiry Audit, TLS Toolbox, Reverify HTTPS, Renew TLS, Review HOLD, Run History, Status Guide, Help, Create TLS Secret, Update TLS Secret, Delete TLS Secret, Age setup / recovery help and Exit. Use their displayed names rather than relying on fixed menu numbering.
+**Available guided capabilities:** Inventory, Expiry Audit, TLS Toolbox, Reverify HTTPS, Renew TLS, Review HOLD, Run History, Status Guide, Help, Create TLS Secret, Update TLS Secret, Delete TLS Secret, Age setup / recovery help, Delete recovery / Restore and Exit. Use their displayed names rather than relying on fixed menu numbering.
 
 For general endpoint inspection select **TLS Toolbox → TLS Doctor**. The separate **Reverify HTTPS** operation requires evidence from a saved renewal run.
 
@@ -65,6 +65,8 @@ bash scripts/tls-secret-manager.sh crud --context APPROVED_CONTEXT \
 | **plan-create** | --namespace, --secret, --cert, --key, --workspace | Immutable preflight; target must not already exist |
 | **plan-update** | same | Existing target; same-SAN identity check |
 | **plan-delete** | --namespace, --secret, --workspace | Dependency scan, HOLD or immutable delete plan |
+| **reconcile-delete** | --namespace, --secret, --plan | Read-only original Delete journal and current cluster state |
+| **restore-delete** | --namespace, --secret, --plan, --backup-identity, --approve, --confirm-target, --operator-mode, --operator-ack | Single-operator, create-only restore; only after verified deletion |
 | **create** | --namespace, --secret, --cert, --key, --plan, --approve, --confirm-target plus authorization | One guarded atomic create |
 | **update** | same plus --backup-recipient | One guarded replace with encrypted backup |
 | **delete** | --namespace, --secret, --plan, --approve, --confirm-target, --backup-recipient plus authorization | One guarded conditional deletion |
