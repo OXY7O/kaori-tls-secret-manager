@@ -4,7 +4,23 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 ## [Unreleased]
 
-No subsequent changes beyond v0.2.6 have been recorded.
+No subsequent changes beyond v0.2.7 have been recorded.
+
+## [0.2.7] - 2026-10-16
+
+**Neofetch-style CLI: a full-height eight-row application information panel beside the approved purple logo.**
+
+### Changed
+
+- Show KAORI, TLS Secret Management, maintainer OXY7O, checked-out version, `kubernetes.io/tls` scope, Python runtime, detected platform and Apache-2.0 license.
+- Use one metadata line per logo row, top-aligned and neatly separated, not a sparse two-line centered title.
+- Read version from the local `VERSION` file; use runtime/platform information without a network or Kubernetes call.
+- Retain original approved logo, iTerm2 inline PNG, ANSI color fallback and accessible no-color/plain/narrow/non-TTY output.
+- Add tests for eight-row alignment, real checkout version and metadata fallback.
+
+### Scope
+
+- Interactive header presentation only; no changes to TLS Secret lifecycle, authorization, backups or cluster operations.
 
 ## [0.2.6] - 2026-10-16
 
@@ -192,6 +208,7 @@ No subsequent changes beyond v0.2.6 have been recorded.
 - Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
 - Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
+[0.2.7]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.7
 [0.2.6]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.6
 [0.2.5]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.5
 [0.2.4]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.4
