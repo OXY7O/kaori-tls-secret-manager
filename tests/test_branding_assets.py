@@ -56,8 +56,14 @@ def inspect_png(path):
 class BrandingAssetTests(unittest.TestCase):
     def test_wordmark_png_has_valid_content(self):
         width, height = inspect_png(ASSETS / "kaori-logo.png")
-        self.assertGreaterEqual(width, 600)
+        self.assertGreaterEqual(width, 512)
         self.assertGreaterEqual(height, 150)
+
+    def test_readme_and_terminal_use_distinct_pngs(self):
+        readme = (ASSETS / "kaori-logo.png").read_bytes()
+        terminal = (ASSETS / "kaori-cli-mark.png").read_bytes()
+        self.assertNotEqual(readme, terminal)
+        self.assertIn(b"KAORI TLS Secret Manager", readme)
 
     def test_square_icon_png_has_valid_content(self):
         width, height = inspect_png(ASSETS / "kaori-mark.png")

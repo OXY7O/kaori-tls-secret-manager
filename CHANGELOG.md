@@ -4,7 +4,24 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 ## [Unreleased]
 
-No subsequent changes beyond v0.2.7 have been recorded.
+No subsequent changes beyond v0.2.8 have been recorded.
+
+## [0.2.8] - 2026-10-16
+
+**Repair Inventory ALL read timeouts and preserve distinct README/CLI logos.**
+
+### Fixed
+
+- Read-only Inventory defaults to a 90-second API request timeout, 100-object LIST pagination, and two bounded retries for transient API reads; namespace discovery uses the same policy.
+- Retain the original blue orbital-K README image with corrected **KAORI / TLS Secret Manager** text; the violet CLI icon remains unchanged.
+- Failed Kubernetes LIST/GET becomes `INVENTORY_INCOMPLETE` with context, namespace, verb, resource and safe failure category, without logging raw kubectl stderr or Secret payloads.
+- Never classify an API timeout as an INVALID certificate. Only actual malformed certificate/key material may receive INVALID.
+- Inventory failure instructions explicitly state no write/rollback occurred, without irrelevant journal-recovery advice.
+- Add regression tests and troubleshooting instructions with complete `kubectl auth can-i VERB RESOURCE` commands.
+
+### Safety and compatibility
+
+- No changes to Secret mutation/backup/rollback or their network timeouts. Retries apply **only** to Inventory GET/LIST. Incomplete scans do not produce a completed inventory report. Offline CI is not cluster UAT.
 
 ## [0.2.7] - 2026-10-16
 
@@ -208,6 +225,7 @@ No subsequent changes beyond v0.2.7 have been recorded.
 - Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
 - Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
+[0.2.8]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.8
 [0.2.7]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.7
 [0.2.6]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.6
 [0.2.5]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.5

@@ -13,9 +13,9 @@ from unittest.mock import patch
 
 TOOLS = Path(__file__).resolve().parents[1] / "scripts/kubernetes/tls-secret-manager"
 sys.path.insert(0, str(TOOLS))
-import tls_inventory as inv
-import tls_secret_wizard as wizard
-import tls_secret_manager as helper
+import tls_inventory as inv  # noqa: E402 - fixture modules need local TOOL path first
+import tls_secret_wizard as wizard  # noqa: E402 - fixture modules need local TOOL path first
+import tls_secret_manager as helper  # noqa: E402 - fixture modules need local TOOL path first
 
 A = "a" * 64
 
@@ -161,6 +161,7 @@ class TLSInventoryTests(unittest.TestCase):
              patch.object(wizard, "choose", return_value="dev"), \
              patch.object(wizard, "choose_namespaces", return_value=["energy-dev"]), \
              patch.object(wizard, "exec_read", side_effect=fake_exec), \
+             patch.object(helper, "inventory_json", return_value={"items": [{"metadata": {"name": "energy-dev"}}]}), \
              patch.object(wizard, "helper", side_effect=fake_helper), \
              patch.object(wizard, "ask", side_effect=["30", "?", "0"]):
             location = wizard.tls_discovery_dashboard(args)

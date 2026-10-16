@@ -76,3 +76,7 @@ The corresponding approver public key must be installed as a protected trust anc
 - **All writes:** journal results; do not assume success after timeouts or blindly retry uncertain requests. Verify HTTPS endpoint identity separately from stored Secret state.
 
 The accountable operator must maintain Kubernetes authorization, recovery identity custody, change evidence and application-owner verification for their environment. See [Security](../SECURITY.md) and [release quality policy](RELEASE-POLICY.md).
+
+## Inventory ALL read failures
+
+Inventory is read-only. It must LIST Ingress and Secret resources and GET each TLS Secret across every selected namespace. Default request timeout is 90 seconds, LIST pagination uses 100 objects, and transient network/API errors are retried at most twice. Adjust via `wizard --inventory-read-timeout-seconds 120` or direct `discover --read-timeout-seconds 120`. Any failed read produces `INVENTORY_INCOMPLETE` and no final inventory CSV. See [Inventory troubleshooting](INVENTORY-TROUBLESHOOTING.md). A bare `kubectl auth can-i` is invalid; provide both a verb and resource.

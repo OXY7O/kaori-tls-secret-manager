@@ -34,8 +34,12 @@ No. KAORI saves a local **.prom** textfile with aggregate audit counts. A separa
 
 ### Is KAORI restricted to DEV/UAT, or can it be used in production?
 
-KAORI `v0.2.7` is publicly released source code, not a managed service or certified deployment. DEV/UAT is recommended for validation, not a hard-coded restriction. Production use requires acceptance testing, appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
+KAORI `v0.2.8` is publicly released source code, not a managed service or certified deployment. DEV/UAT is recommended for validation, not a hard-coded restriction. Production use requires acceptance testing, appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
 
 ### Where is the full CLI argument list?
 
 Run **bash scripts/tls-secret-manager.sh --help**, **... crud --help**, or **... wizard --help** locally, and refer to [COMMAND-REFERENCE.md](COMMAND-REFERENCE.md).
+
+### Why does Inventory ALL time out after all RBAC checks return yes?
+
+Permissions and Kubernetes API latency are different. A successful `auth can-i` does not guarantee a LIST/GET response completes. In v0.2.8, Inventory reads use a 90-second timeout, 100-object pagination and two bounded retries for transient errors. An incomplete scan stops without a final inventory report, with a safe error category rather than raw Secret data. See [Inventory troubleshooting](INVENTORY-TROUBLESHOOTING.md).

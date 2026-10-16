@@ -595,10 +595,16 @@ def tls_discovery_dashboard(args):
     contexts = exec_read(["kubectl", "config", "get-contexts", "-o", "name"]).splitlines()
     context = args.context or choose("Select Kubernetes context", contexts)
     check(context in contexts, "Kubernetes context is not listed")
-    ns_response = json.loads(exec_read(
-        ["kubectl", "--context", context, "--request-timeout=20s",
-         "get", "namespaces", "-o", "json"]
-    ))
+    import tls_secret_manager as inventory_core
+    inventory_opts = (getattr(args, "inventory_read_timeout_seconds", 90),
+                      getattr(args, "inventory_chunk_size", 100),
+                      getattr(args, "inventory_read_retries", 2))
+    inventory_core.inventory_options(
+        argparse.Namespace(read_timeout_seconds=inventory_opts[0],
+                           chunk_size=inventory_opts[1],
+                           read_retries=inventory_opts[2]))
+    ns_response = inventory_core.inventory_json(
+        context, None, "namespaces", options=inventory_opts)
     namespaces = choose_namespaces(sorted(x["metadata"]["name"] for x in ns_response["items"]))
     raw_days = ask("Expiring warning threshold (days)", "30")
     check(raw_days.isdecimal() and 0 <= int(raw_days) <= 3650,
@@ -618,7 +624,10 @@ def tls_discovery_dashboard(args):
     allow_file.write_text("\n".join(namespaces) + "\n", encoding="utf-8")
     allow_file.chmod(0o600)
     output = helper(context, "discover", "--namespaces", allow_file,
-                    "--runs-dir", run / "runs", "--warn-days", raw_days)
+                    "--runs-dir", run / "runs", "--warn-days", raw_days,
+                    "--read-timeout-seconds", inventory_opts[0],
+                    "--chunk-size", inventory_opts[1],
+                    "--read-retries", inventory_opts[2])
     report_dir = run_path(output, "reports: ")
     overview, unresolved = tls_inventory.join_discovery(
         report_dir / "inventory.csv", report_dir / "ingress-references.csv"
@@ -2079,6 +2088,15 @@ def main_menu(args):
                 continue
             warning("Unknown menu option. Choose a displayed number, ? or H for Help.")
         except Stop as exc:
+            if choice == "1":
+                warning("Inventory stopped (read-only): " + str(exc))
+                hint("INVENTORY_INCOMPLETE: no Secret writes, rollback, or renewal occurred.")
+                hint("Review the exact context, namespace, verb, resource, and safe failure category.")
+                hint("RBAC: kubectl --context CONTEXT auth can-i list secrets -n NAMESPACE")
+                hint("RBAC: kubectl --context CONTEXT auth can-i list ingresses.networking.k8s.io -n NAMESPACE")
+                hint("An unqualified 'kubectl auth can-i' needs both a VERB and RESOURCE.")
+                hint("If cause=TIMEOUT or TRANSIENT_API, inspect API latency and connectivity.")
+                continue
             warning("Operation cancelled/stopped: " + str(exc))
             operator_error_message(str(exc), getattr(args, "_last_run_dir", None))
             hint("Returning to menu. If a write was attempted, inspect the execution journal.")
@@ -2094,6 +2112,12 @@ def main():
     parser.add_argument("--ca-bundle", help="Approved custom CA path")
     parser.add_argument("--reviewed-holds", help="Approved fingerprint-pinned exceptions CSV")
     parser.add_argument("--review-plan", help="Review HELD targets from an earlier plan without Kubernetes changes")
+    parser.add_argument("--inventory-read-timeout-seconds", type=int, default=90,
+                        help="Read-only Inventory API timeout, 20..300 seconds (default 90)")
+    parser.add_argument("--inventory-chunk-size", type=int, default=100,
+                        help="Inventory API LIST pagination, 10..500 (default 100)")
+    parser.add_argument("--inventory-read-retries", type=int, default=2,
+                        help="Transient Inventory read retries, 0..2 (default 2)")
     parser.add_argument("--plain", action="store_true", help="Disable colors and emoji")
     args = parser.parse_args()
     setup_display(args.plain)

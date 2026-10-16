@@ -25,4 +25,4 @@ See [Security](../SECURITY.md), [Architecture](ARCHITECTURE.md), [Operator guide
 
 ## Compatibility and maintenance
 
-The current public release is **v0.2.7** under Semantic Versioning. The 0.x series may introduce interface changes between releases; release notes document changes. Operators should use immutable tags for reproducibility and inspect the [changelog](../CHANGELOG.md) before upgrading. No managed infrastructure support or guaranteed response time is included.
+The current public release is **v0.2.8** under Semantic Versioning. The 0.x series may introduce interface changes between releases; release notes document changes. Operators should use immutable tags for reproducibility and inspect the [changelog](../CHANGELOG.md) before upgrading. No managed infrastructure support or guaranteed response time is included.
