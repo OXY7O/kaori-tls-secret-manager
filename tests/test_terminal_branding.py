@@ -82,8 +82,46 @@ class TerminalBrandTests(unittest.TestCase):
         title = next(i for i, line in enumerate(cleaned) if "KAORI" in line)
         subtitle = next(i for i, line in enumerate(cleaned)
                         if "TLS Secret Management" in line)
-        self.assertEqual(subtitle - title, 2)
+        self.assertEqual(subtitle - title, 1)
         self.assertEqual(sum(' │ ' in line for line in cleaned), 8)
+        self.assertTrue(any('Maintainer' in line and 'OXY7O' in line for line in cleaned))
+        self.assertTrue(any('Scope' in line and 'kubernetes.io/tls' in line for line in cleaned))
+        self.assertTrue(any('Version' in line and brand.source_version() in line for line in cleaned))
+        self.assertTrue(any('License' in line and 'Apache-2.0' in line for line in cleaned))
+
+    def test_information_fills_every_row_and_reads_checkout_version(self):
+        info = brand.info_rows("KAORI", "TLS Secret Management")
+        self.assertEqual(len(info), brand.ICON_ROWS)
+        self.assertEqual(info[0], "KAORI")
+        self.assertEqual(info[1], "TLS Secret Management")
+        for key in ("Maintainer", "Version", "Scope", "Runtime", "Platform", "License"):
+            self.assertEqual(sum(key in row for row in info), 1)
+        self.assertEqual(brand.source_version(),
+                         "v" + (ROOT / "VERSION").read_text(encoding="utf-8").strip())
+
+    def test_missing_or_untrusted_version_file_is_not_invented(self):
+        with tempfile.TemporaryDirectory() as path:
+            file = Path(path) / "VERSION"
+            self.assertEqual(brand.source_version(file), "development")
+            file.write_text("1.2.3\n", encoding="utf-8")
+            self.assertEqual(brand.source_version(file), "v1.2.3")
+            file.write_text("untrusted\nextra", encoding="utf-8")
+            self.assertEqual(brand.source_version(file), "development")
+
+    def test_ansi_and_iterm_show_same_eight_metadata_lines(self):
+        from contextlib import redirect_stdout
+        for env in (
+            {"TERM": "xterm-256color"},
+            {"TERM": "xterm-256color", "TERM_PROGRAM": "iTerm.app"},
+        ):
+            with self.subTest(env=env):
+                out = TtyStream()
+                brand.render_header(stream=out, environ=env, width=80)
+                visible = re.sub(r"\x1b\[[0-9;]*m|\x1b]1337;[^\x07]*\x07|\x1b7|\x1b8",
+                                 "", out.getvalue())
+                for row in brand.info_rows("KAORI", "TLS Secret Management"):
+                    self.assertIn(row, visible)
+                self.assertEqual(visible.count(" │ "), brand.ICON_ROWS)
 
     def test_custom_title_is_readable_and_not_glyph_limited(self):
         output = TtyStream()

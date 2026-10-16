@@ -27,7 +27,7 @@ Terminal width is checked so labels do not wrap. On `--plain`, `NO_COLOR`, narro
 
 [terminal_branding.py](../scripts/kubernetes/tls-secret-manager/terminal_branding.py) exports `render_header(product, subtitle, ...)`. The TLS wizard invokes it; other KAORI terminal tools can reuse the same module or asset and behavior, rather than drawing their own ASCII logos.
 
-- **iTerm2 + interactive color:** embed the approved PNG using supported OSC 1337 inline-image control at a compact `18x10` terminal-cell size.
+- **iTerm2 + interactive color:** embed the approved PNG using supported OSC 1337 inline-image control at a compact `16x8` terminal-cell size.
 - **Other interactive color terminals:** use ANSI half-block art derived from the same image, with 24-bit or 256-color palettes and no external Python dependencies.
 - **No-color/plain, dumb, narrow, or redirected output:** print a compact ASCII-only header with no escape sequences.
 - **`KAORI_NO_IMAGE=1`:** disable native iTerm2 PNG while retaining the colored ANSI pixel-art fallback.
@@ -50,3 +50,20 @@ No branding routine may contact a cluster, install packages or mutate credential
 ## Compact terminal layout (v0.2.6)
 
 Interactive ANSI terminals render the approved violet logo in a 16-cell-wide by 8-row grid, with a vertical rule of equal height and the two-line readable label centered alongside it. iTerm2 uses the original PNG displayed at 16x8 terminal cells. The underlying image assets and README wordmark remain unchanged. This is a human-facing terminal convention only; width-aware, `--plain`, `NO_COLOR` and redirected-output fallbacks stay escape-free.
+
+## Full-height application information panel (v0.2.7)
+
+The interactive terminal displays **eight top-aligned text rows next to the eight-row purple icon**, styled after neofetch. Rather than repeating a two-line title with empty space, the panel includes the product label, subtitle, maintainer organization, checkout version, Kubernetes TLS Secret scope, active Python runtime, detected host platform, and project license.
+
+```text
+KAORI
+TLS Secret Management
+Maintainer : OXY7O
+Version    : v0.2.7
+Scope      : kubernetes.io/tls
+Runtime    : Python 3.x
+Platform   : (detected host OS)
+License    : Apache-2.0
+```
+
+The version is read from the current checkout's `VERSION` file, with a `development` fallback if unavailable. Python and OS information is collected locally. The header **never contacts Kubernetes, reads kubeconfig credentials, or declares a cluster healthy**. The saved-run count and default Inventory (read-only) remain immediately below the header. Non-TTY, `--plain`, `NO_COLOR`, dumb or narrow terminals receive an equivalent escape-free text panel.

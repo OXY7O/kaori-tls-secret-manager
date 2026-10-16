@@ -34,7 +34,7 @@ No. KAORI saves a local **.prom** textfile with aggregate audit counts. A separa
 
 ### Is KAORI restricted to DEV/UAT, or can it be used in production?
 
-KAORI `v0.2.6` is publicly released source code, not a managed service or certified deployment. DEV/UAT is recommended for validation, not a hard-coded restriction. Production use requires acceptance testing, appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
+KAORI `v0.2.7` is publicly released source code, not a managed service or certified deployment. DEV/UAT is recommended for validation, not a hard-coded restriction. Production use requires acceptance testing, appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
 
 ### Where is the full CLI argument list?
 

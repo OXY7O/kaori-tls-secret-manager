@@ -6,6 +6,7 @@ terminal images, or any Kubernetes access.
 """
 import base64
 import os
+import platform
 from pathlib import Path
 import shutil
 import sys
@@ -96,6 +97,49 @@ def inline_iterm_icon(stream, image_file=ICON_FILE, *, environ=None, newline=Tru
     return True
 
 
+VERSION_FILE = Path(__file__).resolve().parents[3] / "VERSION"
+MAINTAINER = "OXY7O"
+RESOURCE_TYPE = "kubernetes.io/tls"
+LICENSE = "Apache-2.0"
+
+
+def source_version(version_file=None):
+    """Read the version of THIS checkout, never a hardcoded release number."""
+    path = VERSION_FILE if version_file is None else Path(version_file)
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return "development"
+    return "v" + value if value and len(value) <= 24 and all(
+        c in "0123456789.-abcdefghijklmnopqrstuvwxyz" for c in value
+    ) else "development"
+
+
+def info_rows(product, subtitle):
+    """Eight accurate, local-only rows beside the icon (neofetch-style)."""
+    return [
+        product,
+        subtitle,
+        f"{'Maintainer':<10} : {MAINTAINER}",
+        f"{'Version':<10} : {source_version()}",
+        f"{'Scope':<10} : {RESOURCE_TYPE}",
+        f"{'Runtime':<10} : Python {sys.version_info.major}.{sys.version_info.minor}",
+        f"{'Platform':<10} : {platform.system() or 'Unknown'}",
+        f"{'License':<10} : {LICENSE}",
+    ]
+
+
+def _styled_info(row, index):
+    if index == 0:
+        return f"\x1b[1;97m{row}\x1b[0m"
+    if index == 1:
+        return f"\x1b[37m{row}\x1b[0m"
+    name, colon, value = row.partition(" : ")
+    if colon:
+        return f"\x1b[96m{name}\x1b[0m : \x1b[37m{value}\x1b[0m"
+    return row
+
+
 def _divider(columns, unicode):
     return "  " + ("─" if unicode else "-") * max(12, min(56, columns - 4)) + "\n"
 
@@ -103,10 +147,10 @@ def _divider(columns, unicode):
 def render_header(product="KAORI", subtitle="TLS Secret Management", *,
                   color=True, unicode=True, image_file=ICON_FILE,
                   stream=None, environ=None, width=None):
-    """Render a readable two-line title beside the approved purple terminal icon.
+    """Compact 8-row terminal identity card beside the approved KAORI icon.
 
-    Never emit ANSI or image protocols into non-interactive, plain, narrow,
-    color-disabled or machine-readable output. This function has no cluster IO.
+    All metadata comes from this checkout or Python runtime. Header rendering
+    performs no kubectl calls, scans no secrets and does not change CLI mode.
     """
     output = sys.stdout if stream is None else stream
     env = os.environ if environ is None else environ
@@ -115,36 +159,28 @@ def render_header(product="KAORI", subtitle="TLS Secret Management", *,
     enabled = (tty and color and "NO_COLOR" not in env
                and env.get("CLICOLOR") != "0" and env.get("TERM") != "dumb")
     utf = unicode and (getattr(output, "encoding", None) or "utf-8").lower().startswith("utf")
+    labels = info_rows(product, subtitle)
+
     output.write("\n")
-    if not enabled or not utf or columns < 53:
-        output.write(f"  [KAORI]  {product}\n")
-        output.write(f"           {subtitle}\n")
-        output.write(_divider(columns, False))
-        return "plain"
-
-    # One line of text in the right-hand column always remains within
-    # a normal terminal width; keep one spare column to prevent auto-wrap.
     left_width = 2 + ICON_CELLS + len(" │ ")
-    if max(len(product), len(subtitle)) + left_width >= columns:
-        output.write(f"  [KAORI]  {product}\n")
-        output.write(f"           {subtitle}\n")
+    if not enabled or not utf or columns < 53 or left_width + max(
+        len(label) for label in labels
+    ) >= columns:
+        for index, label in enumerate(labels):
+            prefix = "  [KAORI]  " if index == 0 else "           "
+            output.write(prefix + label + "\n")
         output.write(_divider(columns, False))
         return "plain"
 
-    labels = {2: product, 4: subtitle}
-
-    # Use the real PNG only where iTerm2 explicitly advertises support.
-    # Cursor save/restore keeps text aligned without rendering a second icon.
+    # iTerm2 draws the supplied PNG in precisely 16x8 cells; preserve
+    # the cursor and print only the 8 corresponding metadata rows.
     if env.get("TERM_PROGRAM") == "iTerm.app":
         output.write("  \x1b7")
         if inline_iterm_icon(output, image_file, environ=env, newline=False):
             output.write("\x1b8")
-            for index in range(ICON_ROWS):
-                label = labels.get(index, "")
-                if label:
-                    tone = 97 if index == 2 else 37
-                    label = f"\x1b[{tone}m{label}\x1b[0m"
-                output.write("  " + " " * ICON_CELLS + " │ " + label + "\n")
+            for index, label in enumerate(labels):
+                output.write("  " + " " * ICON_CELLS + " │ "
+                             + _styled_info(label, index) + "\n")
             output.write(_divider(columns, True))
             return "iterm"
         output.write("\x1b8")
@@ -153,10 +189,7 @@ def render_header(product="KAORI", subtitle="TLS Secret Management", *,
                  or env.get("TERM_PROGRAM") in ("vscode", "Apple_Terminal", "WezTerm", "iTerm.app")
                  or bool(env.get("WT_SESSION")))
     for index, icon_row in enumerate(pixel_rows(truecolor=truecolor)):
-        label = labels.get(index, "")
-        if label:
-            tone = 97 if index == 3 else 37
-            label = f"\x1b[{tone}m{label}\x1b[0m"
-        output.write("  " + icon_row + " │ " + label + "\n")
+        output.write("  " + icon_row + " │ "
+                     + _styled_info(labels[index], index) + "\n")
     output.write(_divider(columns, True))
     return "ansi"
