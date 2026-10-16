@@ -13,9 +13,9 @@ from unittest.mock import patch
 
 TOOLS = Path(__file__).resolve().parents[1] / "scripts/kubernetes/tls-secret-manager"
 sys.path.insert(0, str(TOOLS))
-import tls_inventory as inv
-import tls_secret_wizard as wizard
-import tls_secret_manager as helper
+import tls_inventory as inv  # noqa: E402 - fixture modules need local TOOL path first
+import tls_secret_wizard as wizard  # noqa: E402 - fixture modules need local TOOL path first
+import tls_secret_manager as helper  # noqa: E402 - fixture modules need local TOOL path first
 
 A = "a" * 64
 
