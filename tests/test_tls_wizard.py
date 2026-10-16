@@ -412,7 +412,7 @@ class WizardTests(unittest.TestCase):
                           return_value=types.SimpleNamespace(columns=54)), \
              redirect_stdout(output):
             w.brand_banner()
-        self.assertIn("  TLS MANAGEMENT", output.getvalue())
+        self.assertIn("           TLS Secret Management", output.getvalue())
         self.assertNotIn("OPS  /  TLS", output.getvalue())
         self.assertIn("[KAORI]", output.getvalue())
         self.assertIn("  KAORI", output.getvalue())
