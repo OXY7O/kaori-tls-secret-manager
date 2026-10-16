@@ -4,12 +4,14 @@ KAORI TLS Management publishes immutable SemVer source archives with SHA-256 che
 
 ## What the Quality Gate verifies
 
-The **Quality Gate** on pull requests and the merged main commit performs:
+The **Quality Gate** on pull requests and the merged main commit performs **change-impact-aware checks**:
 
-- Python and Bash syntax validation for CLI modules and launchers.
-- Automated synthetic regression tests, including guarded lifecycle safety cases.
-- CLI help and dependency-doctor smoke checks.
-- An assertion that the workflow does not receive Kubernetes credentials.
+- For TLS/Kubernetes runtime, mutation, unknown and critical workflow changes: full Python/Bash syntax validation, all synthetic regression tests (including guarded lifecycle safety) and CLI smoke checks.
+- For approved documentation or isolated CI/test changes: mapped regression tests only; skipped steps remain visible in Actions. See [Change-Impact CI/CD](CI-CHANGE-IMPACT.md).
+- On a scheduled weekly baseline or manual dispatch: full tests, syntax and CLI checks regardless of change scope.
+- For **every** mode: an assertion that the workflow does not receive Kubernetes credentials.
+
+The GitHub required status context remains `Quality Gate` regardless of selected scope. CodeQL and Ruff remain separate required branch checks; a docs-only PR cannot bypass those scans.
 
 After the main Quality Gate passes, **Publish Release** validates version metadata, packages the exact commit, checks archive readability and publishes SHA256SUMS. Published versions are not overwritten.
 
