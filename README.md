@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Quality Gate" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.7"><img alt="Release v0.2.7" src="https://img.shields.io/badge/release-v0.2.7-blue"></a>
+  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.8"><img alt="Release v0.2.8" src="https://img.shields.io/badge/release-v0.2.8-blue"></a>
 </p>
 
 <p align="center">
@@ -62,7 +62,7 @@ sudo apt install -y git python3 openssl age ca-certificates
 
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
-git checkout v0.2.7  # pin the published release; omit for the latest source
+git checkout v0.2.8  # pin the published release; omit for the latest source
 
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
@@ -145,6 +145,8 @@ The planning commands are read-only with respect to Kubernetes and store private
 
 **Toolbox:** [TLS Doctor and Prometheus metrics usage](docs/TOOLBOX-METRICS-DOCTOR.md) covers read-only standalone commands, metrics labels, private output directories and endpoint mismatches. [Installation and verification](docs/INSTALLATION.md) covers setup, checks and authorized cluster access.
 
+Inventory ALL now supports safe read-only API retries (90-second request timeout, 100-object pagination, up to two retries by default). Customize with `wizard --inventory-read-timeout-seconds 120 --inventory-chunk-size 100 --inventory-read-retries 2` or direct `discover --read-timeout-seconds 120 --chunk-size 100 --read-retries 2`. See [Inventory troubleshooting](docs/INVENTORY-TROUBLESHOOTING.md).
+
 ## Scope and authorization
 
 - **Managed resource:** Kubernetes Secrets whose `type` is `kubernetes.io/tls` (`tls.crt`, `tls.key`), not CA issuance or standalone X.509 certificate management.
@@ -168,14 +170,14 @@ See the [security policy](SECURITY.md) and [architecture](docs/ARCHITECTURE.md).
 
 ## Release and compatibility
 
-**Current release:** [`v0.2.7`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.7), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
+**Current release:** [`v0.2.8`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.8), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
 
 - **Automated quality:** GitHub Actions **Quality Gate** checks syntax, regression tests, command entrypoints and absence of cluster credentials (Ubuntu, Python 3.12).
 - **Runtime requirements:** Linux/WSL, Python 3.10+, Bash, OpenSSL and `age`; add `kubectl` and authorized RBAC for Kubernetes operations. Platform and cluster compatibility depend on your environment.
 - **Not provided:** self-contained binaries, Docker images, Homebrew packages, ACME issuance, continuous reconciliation controller, or unattended destructive operations.
 - **Operational responsibility:** Before a write, verify scope, permissions, workload dependencies, encrypted recovery and the served HTTPS certificate when applicable. Automated CI does not exercise external Kubernetes environments.
 
-Read the [release notes](docs/releases/v0.2.7.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
+Read the [release notes](docs/releases/v0.2.8.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
 
 ## Documentation & community
 
@@ -189,4 +191,4 @@ Contributions, bug reports, accessibility improvements and sanitized synthetic r
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
-The corrected [KAORI TLS Secret Manager wordmark](assets/kaori-logo.png) and the [square logo mark](assets/kaori-mark.png) are project identity assets. In interactive color terminals, the CLI shows the approved purple terminal icon alongside readable text; redirected or plain terminals show a compact ASCII fallback. The README wordmark was corrected to the canonical product name; the terminal icon is unchanged. Plain-text mode remains supported.
+The README uses the original **blue orbital-K** wordmark with corrected **KAORI / TLS Secret Manager** lettering ([asset](assets/kaori-logo.png)); the terminal uses a **separate violet four-petal icon** ([asset](assets/kaori-cli-mark.png)). In interactive color terminals, the CLI shows the approved purple terminal icon alongside readable text; redirected or plain terminals show a compact ASCII fallback. The README blue orbital-K artwork and violet CLI icon are independent assets; the CLI icon is unchanged. Plain-text mode remains supported.

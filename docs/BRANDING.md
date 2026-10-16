@@ -6,11 +6,11 @@
 
 | Asset | Scope |
 | --- | --- |
-| [kaori-logo.png](../assets/kaori-logo.png) | Corrected README/documentation wordmark: **KAORI TLS Secret Manager**, with the approved purple icon |
+| [kaori-logo.png](../assets/kaori-logo.png) | Original **blue orbital-K** README logo with corrected **KAORI / TLS Secret Manager** lettering |
 | [kaori-mark.png](../assets/kaori-mark.png) | Original public square orbital-K mark; unchanged |
 | [kaori-cli-mark.png](../assets/kaori-cli-mark.png) | **Approved violet four-petal terminal header icon**, optimized from the supplied original |
 
-The new purple mark is the header-icon standard for **future KAORI command-line tools**. It does not replace website, README, or other product imagery.
+Keep two distinct identities: the README uses the original **blue orbital-K**; the CLI uses the **violet four-petal icon**. Never replace one with the other.
 
 ## Readable terminal title
 

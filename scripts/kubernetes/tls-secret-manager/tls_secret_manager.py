@@ -46,6 +46,94 @@ def kube_json(ctx, *args):
     except (UnicodeError, ValueError) as ex:
         raise Stop('Invalid Kubernetes JSON response') from ex
 
+# Read-only Inventory has longer, bounded API requests. Mutation calls keep their
+# existing 20-second request timeout and are NEVER retried by this helper.
+INVENTORY_DEFAULT_TIMEOUT = 90
+INVENTORY_DEFAULT_CHUNK = 100
+INVENTORY_DEFAULT_RETRIES = 2
+
+
+def inventory_options(args):
+    timeout = getattr(args, 'read_timeout_seconds', INVENTORY_DEFAULT_TIMEOUT)
+    chunk = getattr(args, 'chunk_size', INVENTORY_DEFAULT_CHUNK)
+    retries = getattr(args, 'read_retries', INVENTORY_DEFAULT_RETRIES)
+    check(20 <= timeout <= 300, 'Inventory timeout must be 20..300 seconds')
+    check(10 <= chunk <= 500, 'Inventory chunk size must be 10..500')
+    check(0 <= retries <= 2, 'Inventory retries must be 0..2')
+    return timeout, chunk, retries
+
+
+def _inventory_failure_kind(stderr, timed_out=False):
+    """Return only a fixed category; never log raw kubectl stderr or Secret data."""
+    if timed_out:
+        return 'TIMEOUT'
+    lowered = stderr.lower()
+    if any(x in lowered for x in (
+            b'client.timeout', b'context deadline exceeded', b'request canceled',
+            b'i/o timeout', b'timed out', b'timeout awaiting response headers',
+            b'http2: stream closed', b'too many requests',
+            b'service unavailable', b'server timeout', b'gateway timeout')):
+        return 'TRANSIENT_API'
+    if b'forbidden' in lowered or b'unauthorized' in lowered:
+        return 'ACCESS_DENIED'
+    return 'API_ERROR'
+
+
+def inventory_k(ctx, ns, resource, *, name=None, output_args=None,
+                timeout_seconds=INVENTORY_DEFAULT_TIMEOUT,
+                chunk_size=INVENTORY_DEFAULT_CHUNK,
+                retries=INVENTORY_DEFAULT_RETRIES):
+    """Bounded, safe retry for Inventory-only GET/LIST; never replay a write.
+
+    LIST pagination only affects inventory discovery. Existing mutation helpers
+    and their network timeouts remain entirely unchanged.
+    """
+    verb = 'GET' if name is not None else 'LIST'
+    command = ['kubectl', '--context', ctx, f'--request-timeout={timeout_seconds}s']
+    if ns is not None:
+        command += ['-n', ns]
+    command += ['get', resource]
+    if name is not None:
+        command.append(name)
+    else:
+        command.append(f'--chunk-size={chunk_size}')
+    command += list(output_args if output_args is not None else ['-o', 'json'])
+    for attempt in range(1, retries + 2):
+        try:
+            proc = subprocess.run(command, stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
+                                  timeout=timeout_seconds + 15)
+            if proc.returncode == 0:
+                return proc.stdout
+            kind = _inventory_failure_kind(proc.stderr)
+            exit_code = proc.returncode
+        except subprocess.TimeoutExpired:
+            kind, exit_code = 'TIMEOUT', None
+        except OSError as exc:
+            raise Stop(f'INVENTORY_INCOMPLETE: context={ctx!r}, namespace={ns or "cluster"}, '
+                       f'verb={verb}, resource={resource if name is None else resource + "/" + name}, '
+                       f'cause=LOCAL_EXECUTION_ERROR ({type(exc).__name__})') from exc
+        if kind not in ('TIMEOUT', 'TRANSIENT_API') or attempt > retries:
+            detail = f'exit={exit_code}' if exit_code is not None else 'client_timeout'
+            raise Stop(f'INVENTORY_INCOMPLETE: context={ctx!r}, namespace={ns or "cluster"}, '
+                       f'verb={verb}, resource={resource if name is None else resource + "/" + name}, '
+                       f'cause={kind}, attempts={attempt}, {detail}')
+        time.sleep(min(attempt, 2))  # read-only transient retry; never for writes
+    raise Stop('INVENTORY_INCOMPLETE: retry budget exhausted')
+
+
+def inventory_json(ctx, ns, resource, *, name=None, options=None):
+    timeout, chunk, retries = options or (
+        INVENTORY_DEFAULT_TIMEOUT, INVENTORY_DEFAULT_CHUNK, INVENTORY_DEFAULT_RETRIES)
+    payload = inventory_k(ctx, ns, resource, name=name,
+                          timeout_seconds=timeout, chunk_size=chunk, retries=retries)
+    try:
+        return json.loads(payload)
+    except (UnicodeError, ValueError) as ex:
+        raise Stop(f'INVENTORY_INCOMPLETE: context={ctx!r}, namespace={ns or "cluster"}, '
+                   f'resource={resource}, cause=INVALID_API_RESPONSE') from ex
+
+
 def digest(content):
     return hashlib.sha256(content).hexdigest()
 
@@ -162,8 +250,9 @@ def targets(filename, allowed):
         result.append({'namespace': ns, 'secret_name': name, 'mode': mode, 'reason': reason})
     return result
 
-def ingress_references(ctx, ns):
-    ingresses = kube_json(ctx, '-n', ns, 'get', 'ingresses.networking.k8s.io')['items']
+def ingress_references(ctx, ns, *, inventory=None):
+    ingresses = (inventory_json(ctx, ns, 'ingresses.networking.k8s.io', options=inventory)
+                 if inventory is not None else kube_json(ctx, '-n', ns, 'get', 'ingresses.networking.k8s.io'))['items']
     mapping = {}
     for ing in ingresses:
         for entry in ing.get('spec', {}).get('tls', []):
@@ -172,8 +261,9 @@ def ingress_references(ctx, ns):
                 mapping.setdefault(secret, []).append({'ingress': ing['metadata']['name'], 'host': host})
     return mapping
 
-def secret(ctx, ns, name):
-    obj = kube_json(ctx, '-n', ns, 'get', 'secret', name)
+def secret(ctx, ns, name, *, inventory=None):
+    obj = (inventory_json(ctx, ns, 'secret', name=name, options=inventory)
+           if inventory is not None else kube_json(ctx, '-n', ns, 'get', 'secret', name))
     check(obj.get('type') == TYPE, f'{ns}/{name} is not kubernetes.io/tls')
     check('tls.crt' in obj.get('data', {}) and 'tls.key' in obj.get('data', {}), 'TLS Secret missing crt/key')
     return obj
@@ -494,10 +584,16 @@ def update_journal(path, obj):
     temp.chmod(0o600)
     os.replace(temp, path)
 
-def secret_type_index(ctx, ns):
+def secret_type_index(ctx, ns, *, inventory=None):
     """Names/type only: kubectl receives but does not emit Secret payloads."""
-    listing = k(ctx, '-n', ns, 'get', 'secrets', '-o',
-                'custom-columns=NAME:.metadata.name,TYPE:.type', '--no-headers')
+    if inventory is None:
+        listing = k(ctx, '-n', ns, 'get', 'secrets', '-o',
+                    'custom-columns=NAME:.metadata.name,TYPE:.type', '--no-headers')
+    else:
+        timeout, chunk, retries = inventory
+        listing = inventory_k(ctx, ns, 'secrets',
+                              output_args=['-o', 'custom-columns=NAME:.metadata.name,TYPE:.type', '--no-headers'],
+                              timeout_seconds=timeout, chunk_size=chunk, retries=retries)
     result = {}
     for line in listing.decode('utf-8').splitlines():
         fields = line.strip().split()
@@ -507,19 +603,25 @@ def secret_type_index(ctx, ns):
     return result
 
 
-def tls_secret_names(ctx, ns):
-    return [name for name, kind in secret_type_index(ctx, ns).items() if kind == TYPE]
+def tls_secret_names(ctx, ns, *, inventory=None):
+    return [name for name, kind in secret_type_index(ctx, ns, inventory=inventory).items() if kind == TYPE]
 
 
 def cmd_discover(args):
     names = allowlist(args.namespaces)
     rows, refs = [], []
     check(args.warn_days >= 0, 'Negative warning threshold')
+    options = inventory_options(args)
     for ns in names:
-        mapping = ingress_references(args.context, ns)
-        for name in tls_secret_names(args.context, ns):
+        mapping = ingress_references(args.context, ns, inventory=options)
+        for name in tls_secret_names(args.context, ns, inventory=options):
+            # API GET must finish BEFORE certificate validation. A read failure
+            # is an incomplete scan, NOT a malformed certificate (INVALID).
+            obj = inventory_json(args.context, ns, 'secret', name=name, options=options)
             try:
-                obj = secret(args.context, ns, name)
+                check(obj.get('type') == TYPE, 'TLS Secret resource type changed')
+                check('tls.crt' in obj.get('data', {}) and 'tls.key' in obj.get('data', {}),
+                      'TLS Secret missing certificate/private key')
                 info = old_info(obj)
                 verify_stored_pair(obj)
                 now = dt.datetime.now(UTC)
@@ -1326,6 +1428,12 @@ def main():
             sp.add_argument('--runs-dir', default='./runs')
         if cmd == 'discover':
             sp.add_argument('--warn-days', type=int, default=30)
+            sp.add_argument('--read-timeout-seconds', type=int, default=INVENTORY_DEFAULT_TIMEOUT,
+                            help='Inventory read-only Kubernetes API timeout (20..300s; default 90)')
+            sp.add_argument('--chunk-size', type=int, default=INVENTORY_DEFAULT_CHUNK,
+                            help='Inventory LIST pagination (10..500 objects; default 100)')
+            sp.add_argument('--read-retries', type=int, default=INVENTORY_DEFAULT_RETRIES,
+                            help='Transient Inventory GET/LIST retries (0..2; default 2)')
         if cmd in ('verify-source', 'plan', 'renew'):
             sp.add_argument('--cert', required=True)
             sp.add_argument('--key', required=True)

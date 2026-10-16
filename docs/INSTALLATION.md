@@ -21,7 +21,7 @@ sudo apt install -y git python3 openssl age ca-certificates
 ~~~bash
 mkdir -p ~/workspace
 cd ~/workspace
-git clone --branch v0.2.7 --depth 1 https://github.com/OXY7O/kaori-tls-secret-manager.git
+git clone --branch v0.2.8 --depth 1 https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain

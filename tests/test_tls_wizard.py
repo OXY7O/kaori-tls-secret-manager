@@ -388,6 +388,26 @@ class WizardTests(unittest.TestCase):
             w.main_menu(args)
             self.assertEqual(guidance.call_count, len(w.STATUS_GUIDE))
 
+    def test_inventory_api_failure_has_read_only_guidance_without_rollback_message(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        args = types.SimpleNamespace(context=None, workspace=None)
+        with patch.object(w.sys.stdin, "isatty", return_value=True), \
+             patch.object(w, "recent_plans", return_value=[]), \
+             patch.object(w, "ask", side_effect=["1", "0"]), \
+             patch.object(w, "tls_discovery_dashboard",
+                          side_effect=w.Stop("INVENTORY_INCOMPLETE: namespace=dev, "
+                                             "verb=LIST, resource=secrets, cause=TRANSIENT_API")), \
+             redirect_stdout(StringIO()) as output:
+            w.main_menu(args)
+        rendered = output.getvalue()
+        self.assertIn("Inventory stopped (read-only)", rendered)
+        self.assertIn("INVENTORY_INCOMPLETE", rendered)
+        self.assertIn("no Secret writes", rendered)
+        self.assertIn("auth can-i list secrets", rendered)
+        self.assertNotIn("If a write was attempted", rendered)
+        self.assertNotIn("inspect the execution journal", rendered)
+
     def test_operator_help_number_and_shortcut_do_not_discover(self):
         from contextlib import redirect_stdout
         from io import StringIO
