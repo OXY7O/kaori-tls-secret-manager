@@ -55,6 +55,12 @@ class ImpactGateTests(unittest.TestCase):
         self.assertEqual(gate.classify({"../private.pem"})["mode"], "full")
         self.assertEqual(gate.classify({"<initial-push>"})["mode"], "full")
 
+    def test_unknown_future_python_module_falls_back_to_full(self):
+        # A newly introduced utility cannot silently escape test coverage.
+        result = gate.classify({"scripts/ci/new_helper.py", "docs/FAQ.md"})
+        self.assertEqual(result["mode"], "full")
+        self.assertEqual(result["reason"], "unmapped path (fail closed)")
+
     def test_scheduled_or_manual_runs_always_full(self):
         for event in ["schedule", "workflow_dispatch"]:
             self.assertEqual(gate.classify({"docs/CODE-QUALITY.md"}, event=event)["mode"], "full")
