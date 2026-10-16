@@ -68,7 +68,7 @@ bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
 ~~~
 
-The guided interface starts automatically when you run the launcher without arguments. In an interactive color terminal, the terminal header displays the approved violet four-petal KAORI icon beside the readable two-line title **KAORI / TLS Secret Management**. Use `wizard --plain` for an escape-free text interface; README and web imagery remain unchanged. Select **Help** to explore features or **Exit** to leave. Accepting the default selection starts read-only Inventory, which accesses your selected Kubernetes context.
+The guided interface starts automatically when you run the launcher without arguments. In an interactive color terminal, the terminal header displays the approved violet four-petal KAORI icon beside the readable two-line title **KAORI / TLS Secret Management**. Use `wizard --plain` for an escape-free text interface; the updated README wordmark uses the canonical KAORI TLS Secret Manager name. Select **Help** to explore features or **Exit** to leave. Accepting the default selection starts read-only Inventory, which accesses your selected Kubernetes context.
 
 ### Recovery encryption with age (before Update/Delete)
 
@@ -189,4 +189,4 @@ Contributions, bug reports, accessibility improvements and sanitized synthetic r
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
-The corrected [KAORI TLS Secret Manager wordmark](assets/kaori-logo.png) and the [square logo mark](assets/kaori-mark.png) are project identity assets. In interactive color terminals, the CLI shows the approved purple terminal icon alongside readable text; redirected or plain terminals show a compact ASCII fallback. The GitHub wordmark and other non-terminal branding are unchanged. Plain-text mode remains supported.
+The corrected [KAORI TLS Secret Manager wordmark](assets/kaori-logo.png) and the [square logo mark](assets/kaori-mark.png) are project identity assets. In interactive color terminals, the CLI shows the approved purple terminal icon alongside readable text; redirected or plain terminals show a compact ASCII fallback. The README wordmark was corrected to the canonical product name; the terminal icon is unchanged. Plain-text mode remains supported.

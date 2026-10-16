@@ -21,7 +21,7 @@ The standard header keeps the approved purple icon at left and uses two clear, o
 
 A thin vertical separator separates branding from the text, with a horizontal rule under the header. The former square-tile/8-bit title font was removed in **v0.2.3** because it made the product name and subtitle difficult to read. It is not used as a fallback. Other KAORI CLI tools should reuse this simple visual pattern rather than inventing separate pixel-title fonts.
 
-Terminal width is checked so labels do not wrap. On `--plain`, `NO_COLOR`, narrow or redirected terminals, output stays ASCII-only with no graphics control sequences. This affects interactive headers only; machine-readable JSON and the existing public website/README logo stay unchanged.
+Terminal width is checked so labels do not wrap. On `--plain`, `NO_COLOR`, narrow or redirected terminals, output stays ASCII-only with no graphics control sequences. This affects interactive headers only; machine-readable JSON stays unchanged. The README wordmark is separately updated to the canonical product name.
 
 ## Reusable terminal renderer
 
