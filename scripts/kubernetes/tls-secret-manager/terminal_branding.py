@@ -66,12 +66,57 @@ def pixel_rows(*, truecolor=False):
     return lines
 
 
-def inline_iterm_icon(stream, image_file=ICON_FILE, *, environ=None):
-    """Only iTerm2 may receive OSC 1337; all other terminals use ANSI art."""
+# Five rows of individual terminal-cell squares, not a decorative image/font.
+# Keep these glyphs local and dependency-free so all KAORI CLIs can reuse them.
+TITLE_FONT = {
+    "K": ("10001", "10010", "11100", "10010", "10001"),
+    "A": ("01110", "10001", "11111", "10001", "10001"),
+    "O": ("01110", "10001", "10001", "10001", "01110"),
+    "R": ("11110", "10001", "11110", "10100", "10010"),
+    "I": ("11111", "00100", "00100", "00100", "11111"),
+}
+SUBTITLE_FONT = {
+    "A": ("010", "101", "111", "101", "101"),
+    "E": ("111", "100", "110", "100", "111"),
+    "G": ("011", "100", "101", "101", "011"),
+    "L": ("100", "100", "100", "100", "111"),
+    "M": ("101", "111", "111", "101", "101"),
+    "N": ("101", "111", "111", "111", "101"),
+    "S": ("011", "100", "010", "001", "110"),
+    "T": ("111", "010", "010", "010", "010"),
+}
+
+
+def block_text_rows(text, alphabet, tile="■"):
+    """Return 5 rows of square-tile text; unsupported names stay legible.
+
+    A character takes its glyph width plus one blank cell; word spacing
+    takes two cells. Single-cell symbols avoid double-width Unicode art.
+    """
+    if any(char != " " and char not in alphabet for char in text.upper()):
+        return None
+    lines = []
+    for line_number in range(5):
+        parts = [("  " if char == " " else
+                  "".join(tile if pixel == "1" else " " for pixel in alphabet[char][line_number]))
+                 for char in text.upper()]
+        lines.append(" ".join(parts).rstrip())
+    return lines
+
+
+def block_brand_rows(product, subtitle):
+    """11-row header: large game-style title, spacer, small game subtitle."""
+    title = block_text_rows(product, TITLE_FONT, "■")
+    small = block_text_rows(subtitle, SUBTITLE_FONT, "▪")
+    return title + [""] + small if title is not None and small is not None else None
+
+
+def inline_iterm_icon(stream, image_file=ICON_FILE, *, environ=None, newline=True):
+    """Use the approved purple PNG only in an explicitly supported iTerm2 TTY."""
     env = os.environ if environ is None else environ
     if (not stream.isatty() or env.get("TERM_PROGRAM") != "iTerm.app"
             or env.get("KAORI_NO_IMAGE") == "1" or env.get("TERM") == "dumb"
-            or "NO_COLOR" in env):
+            or "NO_COLOR" in env or env.get("CLICOLOR") == "0"):
         return False
     try:
         data = Path(image_file).read_bytes()
@@ -80,19 +125,24 @@ def inline_iterm_icon(stream, image_file=ICON_FILE, *, environ=None):
     if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > 100_000:
         return False
     encoded = base64.b64encode(data).decode("ascii")
-    stream.write("\x1b]1337;File=inline=1;width=18;height=9;preserveAspectRatio=1:"
-                 + encoded + "\x07\n")
+    stream.write("\x1b]1337;File=inline=1;width=18;height=11;preserveAspectRatio=1:"
+                 + encoded + "\x07")
+    if newline:
+        stream.write("\n")
     return True
+
+
+def _divider(columns, unicode):
+    return "  " + ("─" if unicode else "-") * max(12, min(56, columns - 4)) + "\n"
 
 
 def render_header(product="KAORI", subtitle="TLS MANAGEMENT", *,
                   color=True, unicode=True, image_file=ICON_FILE,
                   stream=None, environ=None, width=None):
-    """Show the approved mark ONLY in an interactive terminal.
+    """Render the shared terminal-only mark and an optional 8-bit game title.
 
-    Use as the common terminal-header renderer for future KAORI CLI tools.
-    Non-TTY, --plain, NO_COLOR and dumb terminals stay escape-free.
-    This never touches stdout of machine-readable subcommands unless called.
+    No coloring or image escapes in redirected, plain, narrow or dumb output.
+    Render only inside a human-interactive menu, never in machine-readable CLI.
     """
     output = sys.stdout if stream is None else stream
     env = os.environ if environ is None else environ
@@ -103,21 +153,47 @@ def render_header(product="KAORI", subtitle="TLS MANAGEMENT", *,
     utf = unicode and (getattr(output, "encoding", None) or "utf-8").lower().startswith("utf")
     output.write("\n")
     if not enabled or not utf or columns < 53:
-        # A compact ASCII-only fallback, never the discontinued orbital-K art.
         output.write(f"  [KAORI]  {product}\n")
         output.write(f"           {subtitle}\n")
-        output.write("  " + "-" * max(12, min(48, columns - 4)) + "\n")
+        output.write(_divider(columns, False))
         return "plain"
-    if inline_iterm_icon(output, image_file, environ=env):
-        output.write(f"  {product}  |  {subtitle}\n")
-        output.write("  " + "─" * max(12, min(48, columns - 4)) + "\n")
-        return "iterm"
-    truecolor = (env.get("COLORTERM", "").lower() in ("truecolor", "24bit")
-                 or env.get("TERM_PROGRAM") in ("vscode", "Apple_Terminal", "WezTerm", "iTerm.app")
-                 or bool(env.get("WT_SESSION")))
-    labels = {3: product, 5: subtitle}
-    for index, colored in enumerate(pixel_rows(truecolor=truecolor)):
-        title = labels.get(index, "")
-        output.write("  " + colored + "  │  " + title + "\n")
-    output.write("  " + "─" * max(12, min(48, columns - 4)) + "\n")
+
+    logo_rows = pixel_rows(
+        truecolor=(env.get("COLORTERM", "").lower() in ("truecolor", "24bit")
+                   or env.get("TERM_PROGRAM") in ("vscode", "Apple_Terminal", "WezTerm", "iTerm.app")
+                   or bool(env.get("WT_SESSION"))))
+    tile_rows = block_brand_rows(product, subtitle)
+    # Leave at least one spare terminal column to prevent automatic wrap.
+    pixel_title = (tile_rows is not None and
+                   2 + 20 + len(" │ ") + max(len(row) for row in tile_rows) < columns)
+    if pixel_title and env.get("TERM_PROGRAM") == "iTerm.app":
+        # Save the cursor and draw the PNG on the left. Restore the cursor
+        # before printing aligned block glyphs to the right of the image.
+        # Never send this protocol to terminals that do not advertise iTerm2.
+        output.write("  \x1b7")
+        if inline_iterm_icon(output, image_file, environ=env, newline=False):
+            output.write("\x1b8")
+            for index, line in enumerate(tile_rows):
+                output.write("  " + " " * 20 + " │ "
+                             + ("\x1b[97m" if index < 5 else "\x1b[37m")
+                             + line + "\x1b[0m\n")
+            output.write(_divider(columns, True))
+            return "iterm"
+        output.write("\x1b8")
+
+    labels = tile_rows if pixel_title else [""] * 10
+    if not pixel_title:
+        labels[3] = product
+        labels[6] = subtitle
+    for index, graphic in enumerate(logo_rows):
+        label = labels[index]
+        shade = 97 if index < 5 else 37
+        output.write("  " + graphic + " │ "
+                     + (f"\x1b[{shade}m{label}\x1b[0m" if label else "")
+                     + "\n")
+    if pixel_title:
+        # The small-font final row occupies one more line than the logo;
+        # keep it aligned under the same right-hand text column.
+        output.write("  " + " " * 20 + " │ \x1b[37m" + tile_rows[10] + "\x1b[0m\n")
+    output.write(_divider(columns, True))
     return "ansi"

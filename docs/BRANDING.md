@@ -12,6 +12,12 @@
 
 The new purple mark is the header-icon standard for **future KAORI command-line tools**. It does not replace website, README, or other product imagery.
 
+## Retro square-tile title
+
+The terminal header renders **KAORI** as a 5-by-5 bitmap font and **TLS MANAGEMENT** as compact 3-by-5 square-glyph text. This is **real terminal text**, not an image mockup. The logo remains the same approved violet image or ANSI icon. Width is checked before rendering: a normal 80-column terminal shows the 8-bit type without wrapping, while a narrower terminal displays the readable compact text labels.
+
+The glyphs and geometry are defined in `terminal_branding.py` (`TITLE_FONT`, `SUBTITLE_FONT`, `block_brand_rows`). Unsupported product labels gracefully use compact text rather than rendering invalid characters. Non-interactive output, `--plain`, `NO_COLOR` and `TERM=dumb` keep an escape-free fallback; machine-readable JSON output is unaffected.
+
 ## Reusable terminal renderer
 
 [terminal_branding.py](../scripts/kubernetes/tls-secret-manager/terminal_branding.py) exports `render_header(product, subtitle, ...)`. The TLS wizard invokes it; other KAORI terminal tools can reuse the same module or asset and behavior, rather than drawing their own ASCII logos.
