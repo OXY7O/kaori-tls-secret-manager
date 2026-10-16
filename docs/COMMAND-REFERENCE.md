@@ -24,7 +24,7 @@ bash scripts/tls-secret-manager.sh wizard --context APPROVED_CONTEXT \
 
 Wizard options: **--context**, **--workspace**, **--cert**, **--key**, **--ca-bundle**, **--reviewed-holds**, **--review-plan**, **--plain**. With no argument, the wizard uses interactive prompts. At the first prompt, **Enter defaults to Inventory**; select **Help** or **Exit** to explore without initiating discovery.
 
-**Available guided capabilities:** Inventory, Expiry Audit, TLS Toolbox, Reverify HTTPS, Renew TLS, Review HOLD, Run History, Status Guide, Help, Create TLS Secret, Delete TLS Secret and Exit. Use their displayed names rather than relying on fixed menu numbering.
+**Available guided capabilities:** Inventory, Expiry Audit, TLS Toolbox, Reverify HTTPS, Renew TLS, Review HOLD, Run History, Status Guide, Help, Create TLS Secret, Update TLS Secret, Delete TLS Secret, Age setup / recovery help and Exit. Use their displayed names rather than relying on fixed menu numbering.
 
 For general endpoint inspection select **TLS Toolbox → TLS Doctor**. The separate **Reverify HTTPS** operation requires evidence from a saved renewal run.
 

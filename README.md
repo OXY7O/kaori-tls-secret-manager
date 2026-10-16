@@ -94,9 +94,9 @@ The interactive interface groups **Inventory**, **Expiry Audit**, **TLS Toolbox*
 
 For a new TLS Secret or HTTPS endpoint, use **TLS Toolbox → TLS Doctor**. **Reverify HTTPS** examines evidence from a previously saved renewal run.
 
-Interactive Create/Delete is optimized for a **single authorized operator**: select context, namespace and exact Secret; review the read-only plan; explicitly type **PROCEED** to continue. Delete also requires an **UNUSED** external-consumer attestation and exact target confirmation; KAORI provisions/reuses a protected age recovery identity and verifies its encrypted backup before the write. Optional **independently signed approvals** remain supported for advanced non-interactive workflows. There is no force-delete shortcut.
+Interactive Create/Update/Delete is optimized for a **single authorized operator**: select context, namespace and exact Secret; review the read-only plan; explicitly type **PROCEED** to continue. Delete also requires an **UNUSED** external-consumer attestation and exact target confirmation; KAORI provisions/reuses a protected age recovery identity and verifies its encrypted backup before the write. Optional **independently signed approvals** remain supported for advanced non-interactive workflows. There is no force-delete shortcut.
 
-Read the [single-operator Delete walkthrough](docs/DELETE-TLS-SECRET-SOP.md) before using the Delete workflow.
+Read the [single-operator Delete walkthrough](docs/DELETE-TLS-SECRET-SOP.md) and [age encryption / recovery key guide](docs/AGE-RECOVERY.md) before Update/Delete. The wizard includes guided **Update TLS Secret** and **Age setup / recovery help**.
 
 ## Commands and usage
 

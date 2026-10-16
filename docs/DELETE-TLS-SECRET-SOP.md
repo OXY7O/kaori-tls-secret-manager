@@ -4,6 +4,8 @@
 
 **Safety:** Follow your organization’s Kubernetes authorization, dependency verification and change-management requirements before any deletion. There are no external approval JSON files, signature files, trusted approver key installation, or separate role handoffs in the **interactive single-operator workflow**.
 
+For `age` installation, identity setup, secure custody, recovery-key testing and incident recovery, see [the age guide](AGE-RECOVERY.md).
+
 ## One-time setup
 
 Install Git, Python 3.10+, kubectl, OpenSSL and age. Use an authorized Kubernetes context and scoped permissions. Run:

@@ -260,7 +260,7 @@ class WizardTests(unittest.TestCase):
             w.main_menu(args)
         home = output.getvalue()
         entries = re.findall(r"^\s+(\d+)\.\s+(.+)$", home, flags=re.MULTILINE)
-        self.assertEqual([int(n) for n, _ in entries], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0])
+        self.assertEqual([int(n) for n, _ in entries], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0])
         self.assertTrue(entries[0][1].startswith("Inventory"))
         self.assertNotIn("[DEFAULT]", home)
         self.assertNotRegex(home, r"(?m)^\s+[1-9]\s+[-◉◷⚙↻✓]")

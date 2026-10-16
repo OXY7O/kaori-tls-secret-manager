@@ -10,9 +10,9 @@ Launch the utility with:
 bash scripts/tls-secret-manager.sh wizard
 ~~~
 
-Use **Inventory**, **Expiry Audit**, **TLS Toolbox/Doctor**, **Create TLS Secret**, **Renew TLS** or **Delete TLS Secret** by selecting their displayed names. The wizard reviews the selected context, namespace, Secret identity and read-only plan before any write. For guided Delete, see the complete [decommissioning procedure](DELETE-TLS-SECRET-SOP.md).
+Use **Inventory**, **Expiry Audit**, **TLS Toolbox/Doctor**, **Create TLS Secret**, **Renew TLS** or **Delete TLS Secret** by selecting their displayed names. The wizard reviews the selected context, namespace, Secret identity and read-only plan before any write. For guided Delete, see the complete [decommissioning procedure](DELETE-TLS-SECRET-SOP.md). For first-time Update/Delete key custody and recovery, read the [age guide](AGE-RECOVERY.md) or open the wizard's **Age setup / recovery help**.
 
-For Create/Delete, follow the prompts and explicitly type **PROCEED** to continue after planning. Delete additionally requires confirmation that external consumers are **UNUSED**, the exact target/action phrase and verified encrypted recovery backup. A separate signature file is not required for the guided single-operator path.
+For Create/Update/Delete, follow the prompts and explicitly type **PROCEED** to continue after planning. Delete additionally requires confirmation that external consumers are **UNUSED**, the exact target/action phrase and verified encrypted recovery backup. A separate signature file is not required for the guided single-operator path.
 
 ## Read-only inspection and plans
 
