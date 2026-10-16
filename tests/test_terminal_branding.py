@@ -82,7 +82,7 @@ class TerminalBrandTests(unittest.TestCase):
             width=80)
         self.assertEqual(mode, "ansi")
         lines = output.getvalue().splitlines()
-        cleaned = [re.sub(r"\\x1b\\[[0-9;]*m", "", line) for line in lines]
+        cleaned = [re.sub(r"\x1b\[[0-9;]*m", "", line) for line in lines]
         self.assertLess(max(len(line) for line in cleaned), 80)
         self.assertEqual(sum("■" in line for line in cleaned), 5)
         self.assertEqual(sum("▪" in line for line in cleaned), 5)

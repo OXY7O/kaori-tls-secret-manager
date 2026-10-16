@@ -173,9 +173,9 @@ def render_header(product="KAORI", subtitle="TLS MANAGEMENT", *,
         output.write("  \x1b7")
         if inline_iterm_icon(output, image_file, environ=env, newline=False):
             output.write("\x1b8")
-            for line in tile_rows:
+            for index, line in enumerate(tile_rows):
                 output.write("  " + " " * 20 + " │ "
-                             + ("\x1b[97m" if line in tile_rows[:5] else "\x1b[37m")
+                             + ("\x1b[97m" if index < 5 else "\x1b[37m")
                              + line + "\x1b[0m\n")
             output.write(_divider(columns, True))
             return "iterm"
