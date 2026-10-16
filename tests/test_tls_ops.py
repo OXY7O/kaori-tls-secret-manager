@@ -179,6 +179,21 @@ class TLSOpsTests(unittest.TestCase):
         self.assertEqual(result["endpoint"]["status"], "FINGERPRINT_MISMATCH")
         self.assertIn("external TLS terminator", " ".join(result["diagnosis"]))
 
+    def test_doctor_manual_lb_ip_preserves_sni_hostname(self):
+        with patch.object(ops, "secret", return_value=secret()), \
+             patch.object(ops, "ingress_references", return_value={
+                 "web-tls": [{"host": "web.example.test"}]}), \
+             patch.object(ops, "validate_stored_tls", return_value={
+                 "status": "VALID", "key_match": "MATCH",
+                 "fingerprint_sha256": FP_A}), \
+             patch.object(ops, "probe_https_endpoint", return_value={
+                 "fingerprint": FP_A, "tls_version": "TLSv1.3"}) as probe:
+            result = ops.doctor("ctx", "dev", "web-tls", "web.example.test",
+                                connect_host="192.0.2.10")
+        self.assertEqual(result["endpoint"]["status"], "MATCH")
+        self.assertEqual(result["endpoint"]["connect_host"], "192.0.2.10")
+        probe.assert_called_once_with("web.example.test", "192.0.2.10", 443, None)
+
     def test_drift_scans_dns_ip_separately_and_flags_split_fingerprint(self):
         obj = secret()
         refs = {"web-tls": [{"ingress": "edge", "host": "web.example.test"}]}

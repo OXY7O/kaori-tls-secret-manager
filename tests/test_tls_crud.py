@@ -102,6 +102,17 @@ class CrudSafetyTests(unittest.TestCase):
                                  "Ingress TLS reference: demo/web",
                                  "Pod dependency: demo/web-76c"])
 
+    def test_cross_namespace_gateway_reference_blocks_target_delete(self):
+        gateway = {"metadata": {"namespace": "edge", "name": "edge-gw"},
+                   "spec": {"listeners": [{"tls": {"certificateRefs": [
+                       {"group": "", "kind": "Secret",
+                        "name": "demo-tls", "namespace": "demo"}]}}]}}
+        with patch.object(m, "kube_json", side_effect=[
+                {"items": []}, {"items": []}, {"items": []}, {"items": [gateway]}]), \
+             patch.object(m, "kube", return_value=b"gateways.gateway.networking.k8s.io\n"):
+            refs = m.dependency_evidence("ctx", "demo", "demo-tls", detailed=True)
+        self.assertEqual(refs, ["Gateway TLS certificateRef: edge/edge-gw"])
+
     def test_dormant_deployment_and_cronjob_hold_delete(self):
         # No active Pod exists; templates still guarantee future Secret use.
         deploy = {"kind": "Deployment", "metadata": {"name": "sleeping", "namespace": "demo"},

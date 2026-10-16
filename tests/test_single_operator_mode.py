@@ -108,6 +108,32 @@ class SingleOperatorModeTests(unittest.TestCase):
         self.assertNotIn("--approval-record", apply_tokens)
         self.assertNotIn("--approval-signature", apply_tokens)
 
+    def test_update_guided_mode_uses_same_operator_and_verified_age_backup(self):
+        args = types.SimpleNamespace(context=None)
+        answers = iter(["existing-tls", "", "PROCEED", "UPDATE sandbox/existing-tls"])
+        with patch.object(wizard, "exec_read", side_effect=[
+            "dev-context\n", '{"items":[{"metadata":{"name":"sandbox"}}]}']), \
+             patch.object(wizard, "choose", side_effect=["dev-context", "sandbox"]), \
+             patch.object(wizard, "ask", side_effect=lambda *a, **kw: next(answers)), \
+             patch.object(wizard, "choose_certificate_inputs",
+                          return_value=("cert.pem", "private.key", None)), \
+             patch.object(wizard, "local_recovery_identity",
+                          return_value=(Path("/private/recovery.agekey"), "age1" + "x"*45)), \
+             patch.object(wizard, "crud_command", side_effect=[
+                 {"plan": "/tmp/update-plan.json", "plan_id": "plan123"},
+                 {"status": "COMPLETE_SECRET_VERIFIED", "journal": "/tmp/update-journal.json"}]) as cmd, \
+             redirect_stdout(StringIO()):
+            wizard.crud_wizard(args, "update")
+        self.assertEqual(cmd.call_count, 2)
+        self.assertEqual(cmd.call_args_list[0].args[1], "plan-update")
+        values = [str(x) for x in cmd.call_args.args]
+        self.assertEqual(values[1], "update")
+        self.assertIn("--operator-mode", values)
+        self.assertIn("--backup-identity", values)
+        self.assertIn("--backup-recipient", values)
+        self.assertNotIn("--operator-attested", values)
+        self.assertNotIn("--approval-signature", values)
+
     def test_held_delete_shows_named_resources_without_write_or_recovery_setup(self):
         args = types.SimpleNamespace(context=None)
         hold = {"status": "HOLD", "action": "DELETE",
