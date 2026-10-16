@@ -135,8 +135,8 @@ jobs:
           test -f assets/kaori-mark.png
           test "${GITHUB_REF}" = "refs/heads/main"
           mkdir -p dist
-          ARCHIVE="kaori-tls-management-${TAG}.tar.gz"
-          git archive --format=tar.gz --prefix="kaori-tls-management-${TAG}/" \
+          ARCHIVE="kaori-tls-secret-manager-${TAG}.tar.gz"
+          git archive --format=tar.gz --prefix="kaori-tls-secret-manager-${TAG}/" \
             --output="dist/${ARCHIVE}" HEAD
           tar -tzf "dist/${ARCHIVE}" >/dev/null
           ( cd dist && sha256sum "${ARCHIVE}" > SHA256SUMS )
@@ -152,7 +152,7 @@ jobs:
           TAG="v${VERSION}"
           test "${TAG}" = "${EXPECTED_TAG}"
           gh release create "${TAG}" \
-            "dist/kaori-tls-management-${TAG}.tar.gz" dist/SHA256SUMS \
+            "dist/kaori-tls-secret-manager-${TAG}.tar.gz" dist/SHA256SUMS \
             --target "${GITHUB_SHA}" \
-            --title "KAORI TLS Management ${TAG}" \
+            --title "KAORI TLS Secret Manager ${TAG}" \
             --notes-file "docs/releases/${TAG}.md"

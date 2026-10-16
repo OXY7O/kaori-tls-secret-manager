@@ -51,8 +51,9 @@ class ScopeTerminologyTests(unittest.TestCase):
         self.assertIn('ask("Type the exact PLAN ID to execute")', wizard)
 
     def test_versioned_release_notes_include_current_scope(self):
-        self.assertEqual((ROOT / "VERSION").read_text().strip(), "0.2.4")
-        notes = (ROOT / "docs/releases/v0.2.4.md").read_text(encoding="utf-8")
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        self.assertRegex(version, r"^\d+\.\d+\.\d+$")
+        notes = (ROOT / f"docs/releases/v{version}.md").read_text(encoding="utf-8")
         self.assertIn("KAORI TLS Secret Manager", notes)
 
     def test_png_wordmark_has_canonical_metadata(self):

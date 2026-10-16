@@ -6,14 +6,15 @@ KAORI TLS Secret Manager operates on sensitive Kubernetes TLS Secrets (`type: ku
 
 | Source | Security support |
 | --- | --- |
-| **v0.2.4** | Current public source release; best-effort vulnerability handling |
-| **v0.2.3** | Previous source release; upgrade to v0.2.4 |
-| **v0.2.2** | Previous source release; upgrade to v0.2.4 |
-| **v0.2.1** | Previous source release; upgrade to v0.2.4 |
-| **v0.2.0** | Previous source release; upgrade to v0.2.4 |
-| **v0.1.1** | Previous source release; upgrade to v0.2.4 |
-| **v0.1.0** | Historical source release; upgrade to v0.2.4 |
-| **v0.1.0-rc.1** | Historical release candidate; upgrade to v0.2.4 |
+| **v0.2.5** | Current public source release; best-effort vulnerability handling |
+| **v0.2.4** | Previous source release; upgrade to v0.2.5 |
+| **v0.2.3** | Previous source release; upgrade to v0.2.5 |
+| **v0.2.2** | Previous source release; upgrade to v0.2.5 |
+| **v0.2.1** | Previous source release; upgrade to v0.2.5 |
+| **v0.2.0** | Previous source release; upgrade to v0.2.5 |
+| **v0.1.1** | Previous source release; upgrade to v0.2.5 |
+| **v0.1.0** | Historical source release; upgrade to v0.2.5 |
+| **v0.1.0-rc.1** | Historical release candidate; upgrade to v0.2.5 |
 
 GitHub Actions validates source behavior with synthetic tests and does not assess infrastructure outside the repository. There is **no guaranteed security response SLA or vendor certification**.
 

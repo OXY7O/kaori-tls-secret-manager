@@ -4,7 +4,22 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 ## [Unreleased]
 
-No subsequent changes beyond v0.2.4 have been recorded.
+No subsequent changes beyond v0.2.5 have been recorded.
+
+## [0.2.5] - 2026-10-16
+
+**Ensure GitHub Release title, source archive and checksums use the canonical KAORI TLS Secret Manager product name.**
+
+### Changed
+
+- GitHub Actions release title: **KAORI TLS Secret Manager vX.Y.Z** (not the obsolete abbreviated TLS Management label).
+- Versioned source archive and extracted directory: `kaori-tls-secret-manager-vX.Y.Z.tar.gz` / `kaori-tls-secret-manager-vX.Y.Z/`.
+- Update release preflight validation, synthetic tests, and current installation/release metadata to the new artifact basename.
+- No Kubernetes TLS Secret operation, CLI runtime, approval policy, or encrypted backup behavior changes.
+
+### Compatibility
+
+- Previous immutable release assets retain their historical names. Update automation that downloads source release archives by name to use the new basename for v0.2.5+.
 
 ## [0.2.4] - 2026-10-16
 
@@ -162,6 +177,7 @@ No subsequent changes beyond v0.2.4 have been recorded.
 - Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
 - Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
+[0.2.5]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.5
 [0.2.4]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.4
 [0.2.3]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.3
 [0.2.2]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.2

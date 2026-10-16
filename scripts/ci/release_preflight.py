@@ -61,7 +61,7 @@ def decide(root, *, repository, token):
     status, release = github_get("releases/tags/" + tag, repository=repository, token=token)
     if status == 200:
         assets = {asset.get("name") for asset in release.get("assets", [])}
-        expected = {"kaori-tls-management-" + tag + ".tar.gz", "SHA256SUMS"}
+        expected = {"kaori-tls-secret-manager-" + tag + ".tar.gz", "SHA256SUMS"}
         if release.get("draft") or release.get("prerelease") or not expected.issubset(assets):
             raise ValueError("Existing release has incomplete or unexpected metadata; manual review required")
         return {"publish": False, "tag": tag, "reason": "immutable release already published"}
