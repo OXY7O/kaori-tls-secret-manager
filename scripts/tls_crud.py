@@ -257,6 +257,38 @@ def owner_blockers(obj):
     return sorted(set(blocked))
 
 
+def pod_spec_references_secret(spec, secret_name):
+    """Inspect all standard PodSpec paths without accessing Secret values."""
+    require(isinstance(spec, dict), "Malformed Pod/workload spec in dependency scan")
+    names = []
+    for volume in spec.get("volumes") or []:
+        names.append((volume.get("secret") or {}).get("secretName"))
+        for projection in (volume.get("projected") or {}).get("sources") or []:
+            names.append((projection.get("secret") or {}).get("name"))
+    names.extend(ref.get("name") for ref in spec.get("imagePullSecrets") or [])
+    for container_kind in ("containers", "initContainers", "ephemeralContainers"):
+        for container in spec.get(container_kind) or []:
+            names.extend((v.get("secretRef") or {}).get("name")
+                         for v in container.get("envFrom") or [])
+            names.extend(((v.get("valueFrom") or {}).get("secretKeyRef") or {}).get("name")
+                         for v in container.get("env") or [])
+    return secret_name in names
+
+
+def workload_template(item):
+    """Return PodSpec from workload templates, including dormant CronJobs."""
+    kind = item.get("kind")
+    spec = item.get("spec") or {}
+    if kind == "CronJob":
+        spec = ((spec.get("jobTemplate") or {}).get("spec") or {})
+    require(kind in ("Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "Job", "CronJob"),
+            "Unknown workload type in dependency scan")
+    template = (spec.get("template") or {})
+    require(isinstance(template.get("spec"), dict),
+            "Malformed workload Pod template in dependency scan")
+    return template["spec"]
+
+
 def dependency_evidence(context, namespace, name, *, detailed=False):
     """Find Kubernetes Secret consumers; fail closed on incomplete API visibility."""
     ingress = kube_json(context, "-n", namespace, "get", "ingresses.networking.k8s.io", "-o", "json")
@@ -276,20 +308,21 @@ def dependency_evidence(context, namespace, name, *, detailed=False):
         if any(e.get("secretName") == name for e in item.get("spec", {}).get("tls", [])):
             found("Ingress TLS reference", item, "Ingress TLS reference")
     for pod in pods.get("items", []):
-        spec = pod.get("spec", {})
-        refs = [v.get("secret", {}).get("secretName") for v in spec.get("volumes", [])]
-        for volume in spec.get("volumes", []):
-            refs.extend(p.get("secret", {}).get("name") for p in
-                        volume.get("projected", {}).get("sources", []) if p.get("secret"))
-        refs.extend(v.get("name") for v in spec.get("imagePullSecrets", []))
-        for category in ("containers", "initContainers", "ephemeralContainers"):
-            for container in spec.get(category, []):
-                refs.extend(v.get("secretRef", {}).get("name")
-                            for v in container.get("envFrom", []))
-                refs.extend(v.get("valueFrom", {}).get("secretKeyRef", {}).get("name")
-                            for v in container.get("env", []))
-        if name in refs:
+        if pod_spec_references_secret(pod.get("spec"), name):
             found("Pod dependency", pod, "Pod dependency")
+
+    # A scale-to-zero Deployment, suspended CronJob or future ReplicaSet may
+    # reference this Secret while currently having zero Pods. Never infer unused
+    # from an empty Pod list. Missing list/RBAC visibility must fail closed.
+    workloads = kube_json(context, "-n", namespace, "get",
+                          "deployments.apps,statefulsets.apps,daemonsets.apps,"
+                          "replicasets.apps,jobs.batch,cronjobs.batch", "-o", "json")
+    require(isinstance(workloads.get("items"), list),
+            "Incomplete workload template listing")
+    for item in workloads["items"]:
+        if pod_spec_references_secret(workload_template(item), name):
+            found(str(item["kind"]) + " template reference", item,
+                  "Workload template reference")
 
     resources = kube(context, "api-resources", "--api-group=gateway.networking.k8s.io",
                      "-o", "name").decode("utf-8")
@@ -302,12 +335,13 @@ def dependency_evidence(context, namespace, name, *, detailed=False):
                 for ref in (listener.get("tls", {}).get("certificateRefs") or []):
                     if (ref.get("name") == name and
                         (ref.get("namespace") or gw["metadata"]["namespace"]) == namespace and
-                        ref.get("kind", "Secret") == "Secret"):
+                        ref.get("kind", "Secret") == "Secret" and
+                        ref.get("group", "") == ""):
                         found("Gateway TLS certificateRef", gw, "Gateway TLS certificateRef")
     return sorted(set(blockers))
 
 
-def read_plan(path):
+def read_plan(path, *, allow_expired=False):
     source = Path(path).expanduser()
     require(not source.is_symlink(), "Refuse symlink plan")
     planfile = source.resolve()
@@ -317,7 +351,8 @@ def read_plan(path):
             digest(canonical({k: v for k, v in plan.items() if k != "plan_id"}))[:24],
             "Plan integrity mismatch")
     created = datetime.fromisoformat(plan["created_utc"])
-    require(timedelta(0) <= datetime.now(UTC) - created < timedelta(minutes=30),
+    age = datetime.now(UTC) - created
+    require(timedelta(0) <= age and (allow_expired or age < timedelta(minutes=30)),
             "Plan expired or clock skew detected")
     return planfile, plan
 
@@ -430,7 +465,11 @@ def plan_delete(args):
     require(bool(uid and rv), "Secret UID or resourceVersion missing")
     pem = base64.b64decode(obj.get("data", {}).get("tls.crt", ""), validate=True)
     fp = fingerprint_from_der_or_pem(pem)
+    namespace_info = kube_json(args.context, "get", "namespace", args.namespace, "-o", "json")
+    namespace_uid = (namespace_info.get("metadata") or {}).get("uid")
+    require(bool(namespace_uid), "Namespace identity not available for safe recovery")
     return write_plan(args.workspace, {"action": "DELETE", "context": args.context,
+                                       "namespace_uid": namespace_uid,
                                        "cluster_uid": context_uid(args.context),
                                        "namespace": args.namespace, "secret": args.secret,
                                        "uid": uid, "resource_version": rv,
@@ -646,13 +685,161 @@ def apply(args):
         raise
 
 
+def delete_recovery_evidence(args):
+    """Read-only reconciliation; absence is an observation, never a retry approval."""
+    planfile, plan = read_plan(args.plan, allow_expired=True)
+    require(plan.get("action") == "DELETE", "Only Delete plans can be reconciled here")
+    require((args.context, args.namespace, args.secret) ==
+            (plan["context"], plan["namespace"], plan["secret"]),
+            "Recovery target/context differs from original Delete plan")
+    require(context_uid(args.context) == plan["cluster_uid"], "Recovery cluster identity changed")
+    journal_path = planfile.with_name(f"delete-{plan['plan_id']}-journal.json")
+    require(not journal_path.is_symlink(), "Refuse symlink journal")
+    journal_status = "MISSING"
+    if journal_path.is_file():
+        journal = json.loads(journal_path.read_text(encoding="utf-8"))
+        require(journal.get("plan_id") == plan["plan_id"] and
+                journal.get("action") == "DELETE", "Delete journal identity mismatch")
+        journal_status = journal.get("status", "UNKNOWN")
+    current = find_target(args.context, args.namespace, args.secret)
+    if current is None:
+        observation = "OBSERVED_ABSENT"
+    elif (current.get("metadata") or {}).get("uid") == plan["uid"]:
+        observation = "ORIGINAL_UID_PRESENT"
+    else:
+        observation = "DIFFERENT_UID_PRESENT"
+    backup_path = planfile.with_name(f"delete-{plan['plan_id']}-backup.age")
+    backup_present = (backup_path.is_file() and not backup_path.is_symlink() and
+                      backup_path.stat().st_mode & 0o077 == 0)
+    # Read-only menu eligibility must mirror the guarded backend, rather than
+    # inviting the operator to Restore when essential recovery inputs are missing.
+    journal_verified = bool(
+        journal_status == "COMPLETE_ABSENCE_VERIFIED" and
+        journal_path.is_file() and
+        journal.get("prior_uid") == plan["uid"])
+    namespace_matched = False
+    if plan.get("namespace_uid"):
+        namespace_obj = kube_json(args.context, "get", "namespace",
+                                  args.namespace, "-o", "json")
+        namespace_matched = ((namespace_obj.get("metadata") or {}).get("uid") ==
+                             plan["namespace_uid"])
+    return {
+        "status": "READ_ONLY_RECONCILIATION", "observation": observation,
+        "journal_status": journal_status, "plan_id": plan["plan_id"],
+        "target": f"{plan['namespace']}/{plan['secret']}",
+        "cluster_context": plan["context"],
+        "namespace_identity_match": namespace_matched,
+        "backup_present": backup_present,
+        "restore_eligible": bool(observation == "OBSERVED_ABSENT" and
+                                 journal_verified and backup_present and
+                                 namespace_matched),
+        "note": "Observation is not proof of safe restore. No mutation performed.",
+    }
+
+
+def restore_deleted_secret(args):
+    """Explicit, one-shot restore; never replace an existing Secret."""
+    planfile, plan = read_plan(args.plan, allow_expired=True)
+    require(plan.get("action") == "DELETE", "Restore requires the original Delete plan")
+    require((args.context, args.namespace, args.secret) ==
+            (plan["context"], plan["namespace"], plan["secret"]),
+            "Restore target/context differs from Delete plan")
+    require(getattr(args, "operator_mode", False) and sys.stdin.isatty() and
+            args.approve == plan["plan_id"] and
+            args.confirm_target == f"{plan['namespace']}/{plan['secret']}" and
+            args.operator_ack == f"RESTORE {plan['namespace']}/{plan['secret']}",
+            "Explicit single-operator RESTORE confirmation required")
+    require(context_uid(args.context) == plan["cluster_uid"],
+            "Cluster identity drifted since Delete")
+    # Older plans without pinned namespace identity require a separate
+    # reviewed incident restore; never restore into a recreated namespace.
+    require(bool(plan.get("namespace_uid")), "Delete plan lacks namespace identity; STOP")
+    ns_obj = kube_json(args.context, "get", "namespace", args.namespace, "-o", "json")
+    require((ns_obj.get("metadata") or {}).get("uid") == plan["namespace_uid"],
+            "Namespace identity changed since Delete")
+    delete_journal = planfile.with_name(f"delete-{plan['plan_id']}-journal.json")
+    require(delete_journal.is_file() and not delete_journal.is_symlink(),
+            "Verified successful Delete journal required before guided Restore")
+    deleted = json.loads(delete_journal.read_text(encoding="utf-8"))
+    require(deleted.get("plan_id") == plan["plan_id"] and
+            deleted.get("action") == "DELETE" and
+            deleted.get("status") == "COMPLETE_ABSENCE_VERIFIED" and
+            deleted.get("prior_uid") == plan["uid"],
+            "Delete journal is not verified complete; STOP and reconcile")
+    require(find_target(args.context, args.namespace, args.secret) is None,
+            "Restore target already exists; never overwrite")
+    identity = Path(args.backup_identity).expanduser()
+    require(identity.is_file() and not identity.is_symlink() and
+            identity.stat().st_mode & 0o077 == 0,
+            "Protected age recovery identity (0600) required")
+    encrypted = planfile.with_name(f"delete-{plan['plan_id']}-backup.age")
+    require(encrypted.is_file() and not encrypted.is_symlink() and
+            encrypted.stat().st_mode & 0o077 == 0,
+            "Original encrypted backup missing or unsafe")
+    original = json.loads(call(["age", "-d", "-i", identity, encrypted]))
+    require(original.get("type") == TYPE, "Recovery backup is not a TLS Secret")
+    meta = original.get("metadata") or {}
+    require(meta.get("uid") == plan["uid"] and
+            meta.get("name") == plan["secret"] and
+            meta.get("namespace") == plan["namespace"],
+            "Backup target/identity does not match Delete plan")
+    data = original.get("data") or {}
+    require(isinstance(data, dict) and "tls.crt" in data and "tls.key" in data,
+            "Backup TLS certificate/key missing")
+    fp = fingerprint_from_der_or_pem(base64.b64decode(data["tls.crt"], validate=True))
+    require(fp == plan["old_fingerprint"], "Backup fingerprint does not match Delete plan")
+    # Last preflight before creating a new resource. Kubernetes create itself
+    # is atomic and rejects AlreadyExists, including a race after this check.
+    require(find_target(args.context, args.namespace, args.secret) is None,
+            "Restore target appeared during preflight")
+    journal = planfile.with_name(f"restore-{plan['plan_id']}-journal.json")
+    require(not journal.exists() and not journal.is_symlink(),
+            "Restore already attempted; reconcile and never replay")
+    recovered = {"apiVersion": "v1", "kind": "Secret",
+                 "metadata": {"name": plan["secret"], "namespace": plan["namespace"]},
+                 "type": TYPE, "data": data}
+    for field in ("labels", "annotations"):
+        if meta.get(field):
+            recovered["metadata"][field] = meta[field]
+    if original.get("immutable") is True:
+        recovered["immutable"] = True
+    audit = {"schema_version": 1, "action": "RESTORE",
+             "plan_id": plan["plan_id"], "target": f"{plan['namespace']}/{plan['secret']}",
+             "created_utc": datetime.now(UTC).isoformat(),
+             "status": "MUTATION_UNCERTAIN"}
+    atomic_json(journal, audit)
+    # No automatic retries or rollback after any API uncertainty.
+    kube(args.context, "-n", plan["namespace"], "create", "-f", "-",
+         payload=canonical(recovered))
+    observed = find_target(args.context, plan["namespace"], plan["secret"])
+    require(observed is not None and observed.get("type") == TYPE and
+            (observed.get("metadata") or {}).get("uid") != plan["uid"] and
+            (observed.get("metadata") or {}).get("uid") and
+            (observed.get("metadata") or {}).get("resourceVersion"),
+            "Restored Secret identity unverified")
+    require(observed.get("data") == data, "Restored Secret TLS data differs from backup")
+    # Namespace replacement during the create/verify window must not be
+    # incorrectly recorded as a successful recovery of the reviewed scope.
+    observed_namespace = kube_json(args.context, "get", "namespace",
+                                   args.namespace, "-o", "json")
+    require((observed_namespace.get("metadata") or {}).get("uid") ==
+            plan["namespace_uid"], "Namespace identity changed during Restore")
+    audit.update(status="COMPLETE_SECRET_RESTORED", completed_utc=datetime.now(UTC).isoformat(),
+                 uid=observed["metadata"]["uid"],
+                 resource_version=observed["metadata"]["resourceVersion"],
+                 fingerprint=fp)
+    atomic_json(journal, audit, replace=True)
+    return {"status": audit["status"], "journal": str(journal),
+            "note": "New Kubernetes UID; verify consumers and live HTTPS separately."}
+
+
 def main(argv=None):
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--context", help="Kubernetes context name; mandatory for all commands")
     parser.add_argument("--plain", action="store_true", help="Plain text; no ANSI or emoji are used")
     subs = parser.add_subparsers(dest="command", required=True)
-    for cmd in ("inventory", "inspect", "plan-create", "create", "plan-update", "update", "plan-delete", "delete"):
+    for cmd in ("inventory", "inspect", "plan-create", "create", "plan-update", "update", "plan-delete", "delete", "reconcile-delete", "restore-delete"):
         sub = subs.add_parser(cmd)
         sub.add_argument("--namespace", required=True)
         if cmd != "inventory":
@@ -663,8 +850,15 @@ def main(argv=None):
             sub.add_argument("--cert", required=True)
             sub.add_argument("--key", required=True)
             sub.add_argument("--ca-bundle")
-        if cmd in ("create", "update", "delete"):
+        if cmd in ("create", "update", "delete", "reconcile-delete", "restore-delete"):
             sub.add_argument("--plan", required=True)
+        if cmd == "restore-delete":
+            sub.add_argument("--backup-identity", required=True)
+            sub.add_argument("--approve", required=True)
+            sub.add_argument("--confirm-target", required=True)
+            sub.add_argument("--operator-mode", action="store_true")
+            sub.add_argument("--operator-ack", required=True)
+        if cmd in ("create", "update", "delete"):
             sub.add_argument("--approve", required=True, help="Exact immutable plan ID")
             sub.add_argument("--confirm-target", required=True, help="Exact namespace/secret")
             sub.add_argument("--approval-record",
@@ -708,6 +902,10 @@ def main(argv=None):
             path, plan = plan_update(args)
             print(json.dumps({"plan": str(path), "plan_id": plan["plan_id"],
                               "action": plan["action"]}, indent=2))
+        elif args.command == "reconcile-delete":
+            print(json.dumps(delete_recovery_evidence(args), indent=2))
+        elif args.command == "restore-delete":
+            print(json.dumps(restore_deleted_secret(args), indent=2))
         elif args.command == "plan-delete":
             try:
                 path, plan = plan_delete(args)

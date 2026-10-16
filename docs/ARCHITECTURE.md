@@ -33,13 +33,13 @@ There is no background controller, custom Kubernetes operator or automatic ACME 
 | Update | Existing Secret, matching SAN set, fresh plan, encrypted backup, approval | One authorized replacement with concurrency checks |
 | Delete | No known active consumers, complete reference scan, ownership check, external-consumer attestation, backup and approval | Conditional single-target delete with post-write absence verification |
 
-Dependency discovery includes Ingress TLS references, Pod Secret references and Gateway API certificate references where available, along with owner/controller information. It cannot prove that out-of-cluster applications, load balancers or proxies do not rely on a Secret; those relationships require separate operator verification.
+Dependency discovery includes Ingress TLS references, Pod Secret references, standard workload Pod templates (Deployment/StatefulSet/DaemonSet/ReplicaSet/Job/CronJob, even when no Pods are running), and Gateway API certificate references including cross-namespace targets, along with owner/controller information. It cannot prove that out-of-cluster applications, load balancers or proxies do not rely on a Secret; those relationships require separate operator verification.
 
 ## Data protection
 
 - Kubeconfig, private PEM material, evidence workspaces, age identities and backups must remain outside Git and public issue attachments.
 - Source certificate fingerprint and live endpoint fingerprint are independent measurements; use correct hostname, SNI and trusted CA bundle.
-- Rollback and reconciliation are explicit. A timeout or ambiguous Kubernetes response must not be treated as a successful write or retried blindly.
+- Delete recovery supports read-only reconciliation and explicit create-only restoration from the original age backup after a verified complete Delete; expired operation plans can be read as recovery evidence but may not be replayed as deletion authorizations. A restore is rejected for an uncertain journal, replaced cluster/namespace, existing Secret or unpinned legacy namespace identity. Rollback and reconciliation are explicit. A timeout or ambiguous Kubernetes response must not be treated as a successful write or retried blindly.
 - Plain-text mode and non-interactive machine-readable output avoid decorative ANSI/image sequences.
 
 ## Source distribution

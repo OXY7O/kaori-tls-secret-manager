@@ -15,7 +15,7 @@ sys.path.insert(0, str(TOOLDIR))
 spec = importlib.util.spec_from_file_location("tlswizard_test", TOOLDIR / "tls_secret_wizard.py")
 w = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(w)
-import tls_secret_manager as m
+m = importlib.import_module("tls_secret_manager")
 
 OLD = "a" * 64
 NEW = "b" * 64
@@ -228,6 +228,26 @@ class WizardTests(unittest.TestCase):
         self.assertIn("10. Create TLS Secret", captured.getvalue())
         self.assertIn("11. Delete TLS Secret", captured.getvalue())
 
+    def test_guided_recovery_refuses_unknown_journal_before_write(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        args = types.SimpleNamespace(context=None)
+        data = {"target": "sandbox/demo", "observation": "OBSERVED_ABSENT",
+                "journal_status": "MUTATION_UNCERTAIN", "backup_present": True,
+                "restore_eligible": False, "plan_id": "testplan"}
+        with patch.object(w, "exec_read", return_value="dev-context\n"), \
+             patch.object(w, "choose", return_value="dev-context"), \
+             patch.object(w, "ask", side_effect=["sandbox", "demo", "/tmp/demo-plan.json"]), \
+             patch.object(w.Path, "is_file", return_value=True), \
+             patch.object(w, "local_recovery_identity",
+                          side_effect=AssertionError("No recovery key for HOLD")), \
+             patch.object(w, "crud_command", return_value=data) as call, \
+             redirect_stdout(StringIO()):
+            result = w.delete_recovery_wizard(args)
+        self.assertFalse(result["restore_eligible"])
+        self.assertEqual(call.call_count, 1)
+        self.assertEqual(call.call_args.args[1], "reconcile-delete")
+
     def test_crud_engine_uses_no_arbitrary_mutation_timeout(self):
         with patch.object(w.subprocess, "run") as runner, \
              patch.object(w.Path, "is_file", return_value=True):
@@ -260,7 +280,7 @@ class WizardTests(unittest.TestCase):
             w.main_menu(args)
         home = output.getvalue()
         entries = re.findall(r"^\s+(\d+)\.\s+(.+)$", home, flags=re.MULTILINE)
-        self.assertEqual([int(n) for n, _ in entries], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0])
+        self.assertEqual([int(n) for n, _ in entries], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0])
         self.assertTrue(entries[0][1].startswith("Inventory"))
         self.assertNotIn("[DEFAULT]", home)
         self.assertNotRegex(home, r"(?m)^\s+[1-9]\s+[-◉◷⚙↻✓]")

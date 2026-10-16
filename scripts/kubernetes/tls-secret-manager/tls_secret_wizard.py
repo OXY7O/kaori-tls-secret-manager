@@ -28,6 +28,21 @@ BRAND_LOGO_FILE = HERE.parents[2] / "assets" / "kaori-logo.png"
 USE_COLOR = False
 USE_ICONS = False
 STATUS_GUIDE = {
+    "COMPLETE_SECRET_VERIFIED": (
+        "Create or Update stored TLS certificate/key verified", "create/update-*-journal.json",
+        "Verify Ingress and HTTPS separately; a stored Secret does not prove served HTTPS."),
+    "COMPLETE_ABSENCE_VERIFIED": (
+        "Delete completed; original Secret absent", "delete-*-journal.json",
+        "Preserve encrypted age backup and recovery identity; test workloads separately."),
+    "COMPLETE_SECRET_RESTORED": (
+        "Previous deleted Secret recreated from protected age backup", "restore-*-journal.json",
+        "Secret has a new UID; independently verify consumers, trust and HTTPS."),
+    "MUTATION_UNCERTAIN": (
+        "API write outcome ambiguous; neither success nor proof of failure", "*-journal.json",
+        "STOP: read-only reconciliation, never blind retry or restore from uncertain Delete."),
+    "READ_ONLY_RECONCILIATION": (
+        "Current Kubernetes state inspected without a write", "delete-*-plan.json",
+        "Observed absence alone cannot authorize recovery; inspect original journal."),
     "SECRET_UPDATED_ENDPOINT_UNVERIFIED": (
         "Certificate updated but HTTPS verification has not passed", "execution-journal.json",
         "Inspect the live Secret and endpoint. Run verify-endpoints; do not repeat renewal."),
@@ -216,7 +231,7 @@ def toolbox_help():
     header("TLS TOOLBOX HELP / NO KUBERNETES WRITES")
     print("  1 Health        Expiry, key pair and Ingress SAN coverage")
     print("  2 Families      Compare certificate fingerprints and issuance")
-    print("  3 Dependencies  Discover observed Ingress/Gateway/Pod consumers")
+    print("  3 Dependencies  Discover Ingress/Gateway/Pod/workload consumers")
     print("  4 Doctor        Compare Secret with live HTTPS CA/SNI/fingerprint")
     print("  5 Metrics       Generate local Prometheus textfile evidence")
     print("  6 Reconcile     Inspect saved journal against current Secret state")
@@ -257,8 +272,11 @@ def show_operator_help():
         ("7", "History", "Inspect existing private run folders and journals."),
         ("8", "Status guide", "Detailed READY/HOLD/STOP and recovery status meanings."),
         ("9", "Help", "This reference page (also type ? or H)."),
-        ("10", "Create TLS", "Guided preflight, signed approval and non-overwriting create."),
+        ("10", "Create TLS", "Guided single-operator create; no separate signature."),
         ("11", "Delete TLS", "Guarded decommission with dependency audit and encrypted backup."),
+        ("12", "Update TLS", "Guided same-SAN rotation and verified encrypted backup."),
+        ("13", "Age help", "Local recovery key setup, custody, and guidance."),
+        ("14", "Recovery", "Read-only Delete reconciliation and guarded Restore."),
         ("0", "Exit", "Leave the interactive menu."),
     ):
         print(f"    {number:>2}  {name:<13} {detail}")
@@ -274,7 +292,9 @@ def show_operator_help():
     print("    --review-plan <path>   Review HOLD from saved renewal-plan.json")
     print("    --reviewed-holds <csv> Previously approved review-exception mapping")
     print("    --plain                Disable Unicode icons and ANSI colors")
-    print("    Menu 10/11             Plan Create/Delete, then optional signed execution")
+    print("    Menu 10/11/12          Guided single-operator Create/Delete/Update")
+    print("    Menu 13                Age recovery setup and help")
+    print("    Menu 14                Reconcile Delete before an explicit Restore")
     renewal_help()
     print("\n  SAFETY / SHORTCUTS")
     print("    Menu 1 is the default and does not run renewal or rollback.")
@@ -1655,10 +1675,14 @@ def toolkit_menu(args):
                 else:
                     hostname = ask("HTTPS hostname to check (Enter to inspect Secret only)", "")
                     ca_path = ask("Internal CA bundle path (Enter for system trust)", "") if hostname else ""
+                    connect_host = ask("Specific LB IP/host (Enter=DNS default)", "") if hostname else ""
                     result = tls_ops.doctor(context, ns, name, hostname or None,
-                             ca_bundle=ca_path or None)
+                             connect_host=connect_host or None, ca_bundle=ca_path or None)
                     print("Stored:", result["stored"]["status"],
                           "| HTTPS:", result["endpoint"]["status"])
+                    if hostname:
+                        print("  SNI:", hostname, "| Connect target:",
+                              result["endpoint"].get("connect_host", connect_host or hostname))
                     for item in result["diagnosis"]:
                         warning(item)
                     saved = tls_ops.atomic_evidence(report_root, "doctor", result)
@@ -1774,7 +1798,7 @@ def crud_command(context, command, *options):
     """
     tool = HERE.parents[1] / "tls_crud.py"
     check(tool.is_file(), "CRUD engine is unavailable in this checkout")
-    write = command in ("create", "update", "delete")
+    write = command in ("create", "update", "delete", "restore-delete")
     argv = [sys.executable, str(tool), "--context", context, command,
             *list(map(str, options))]
     try:
@@ -1791,14 +1815,34 @@ def crud_command(context, command, *options):
         raise Stop("Unexpected CRUD CLI response; check local execution logs") from exc
 
 
-def local_recovery_identity():
+def age_recovery_help():
+    """Offline operator guidance; never prints the private identity."""
+    header("AGE / ENCRYPTED RECOVERY GUIDE")
+    print("  age encrypts original Secret snapshots before Update and Delete.")
+    print("  Install: sudo apt install age")
+    print("  The wizard offers SETUP only after an authorized write is confirmed.")
+    print("  Default identity: ~/.config/kaori-tls/recovery.agekey")
+    print("  Legacy identity:  ~/.config/age/k8s-tls-recovery.txt")
+    print("  Directory 0700, identity file 0600; no symlinks.")
+    print("  Public recipient: age-keygen -y PATH_TO_IDENTITY")
+    print("  Keep a separately protected copy of the private age identity.")
+    print("  Losing the identity may make .age backups unrecoverable.")
+    print("  KAORI verifies backup decryptability BEFORE a Kubernetes write.")
+    print("  If a journal reports MUTATION_UNCERTAIN, do not retry.")
+    print("  Read docs/AGE-RECOVERY.md for setup and recovery drill.")
+    ask("Press Enter to return to main menu", "")
+
+
+def local_recovery_identity(*, allow_setup=True):
     """Prepare the age recovery identity once; never print or export private key data."""
     home = Path.home()
     identity = home / ".config" / "age" / "k8s-tls-recovery.txt"
     if not identity.exists():
         identity = home / ".config" / "kaori-tls" / "recovery.agekey"
         if not identity.exists():
-            warning("A protected age recovery key is needed before deleting a Secret.")
+            check(allow_setup, "Existing age identity required for recovery; do not generate a new key")
+            warning("A protected age recovery key is needed before Update or Delete.")
+            hint("Age help is available in the main menu and docs/AGE-RECOVERY.md.")
             hint("KAORI can generate it once; later Delete runs reuse it automatically.")
             check(ask("Type SETUP to create a local recovery key (Enter=Back)") == "SETUP",
                   "Recovery key setup cancelled")
@@ -1828,9 +1872,10 @@ def local_recovery_identity():
 
 
 def crud_wizard(args, operation):
-    """One-person guided Create/Delete; retain immutable plans and fail-closed writes."""
-    check(operation in ("create", "delete"), "Unsupported lifecycle operation")
+    """One-person guided Create/Update/Delete; immutable plans and fail-closed writes."""
+    check(operation in ("create", "update", "delete"), "Unsupported lifecycle operation")
     is_delete = operation == "delete"
+    has_original = operation in ("update", "delete")
     action = operation.upper()
     header(f"{action} TLS SECRET / GUIDED CHANGE")
     hint("Single-operator mode: no separate approval documents or signatures.")
@@ -1838,6 +1883,8 @@ def crud_wizard(args, operation):
     if is_delete:
         warning("Delete is permanent until separately restored from an encrypted backup.")
         hint("Active references, controller ownership, or unknown dependencies still BLOCK Delete.")
+    elif operation == "update":
+        hint("Update preserves SAN identity and requires encrypted recovery.")
     else:
         hint("Create never overwrites an existing Secret; provide a valid PEM/key pair.")
 
@@ -1858,7 +1905,7 @@ def crud_wizard(args, operation):
     options = ["--namespace", namespace, "--secret", name, "--workspace", workspace]
     cert = key = ca = None
     backup_identity = backup_recipient = None
-    if not is_delete:
+    if operation in ("create", "update"):
         cert, key, ca = choose_certificate_inputs(args)
         options += ["--cert", cert, "--key", key]
         if ca:
@@ -1866,7 +1913,7 @@ def crud_wizard(args, operation):
 
     step(1, 3, "Read-only target checks and immutable plan",
          "Nothing will be created or deleted during this step.")
-    result = crud_command(context, "plan-delete" if is_delete else "plan-create", *options)
+    result = crud_command(context, "plan-" + operation, *options)
     if is_delete and result.get("status") == "HOLD":
         header("DELETE ON HOLD / READ ONLY")
         print(f"  Target : {result['target']}")
@@ -1903,8 +1950,8 @@ def crud_wizard(args, operation):
     check(ask(f"Type {action} {exact_target} to confirm") == f"{action} {exact_target}",
           "Operation and target confirmation did not match")
     hint(f"Immutable Plan ID {planid} is bound and verified automatically.")
-    if is_delete:
-        # Only provision recovery once a delete is proven eligible and authorized;
+    if has_original:
+        # Only provision recovery after an approved Update/Delete;
         # HOLD and plan-only checks must not create local keys or request setup.
         backup_identity, backup_recipient = local_recovery_identity()
         ok("Encrypted backup recovery key is available.")
@@ -1915,21 +1962,64 @@ def crud_wizard(args, operation):
                   "--plan", plan_path, "--approve", planid,
                   "--confirm-target", exact_target,
                   "--operator-mode", "--operator-ack", f"{action} {exact_target}"]
-    if is_delete:
-        apply_args += ["--operator-attested",
-                       "--backup-recipient", backup_recipient,
+    if has_original:
+        if is_delete:
+            apply_args += ["--operator-attested"]
+        apply_args += ["--backup-recipient", backup_recipient,
                        "--backup-identity", backup_identity]
-    else:
+    if operation in ("create", "update"):
         apply_args += ["--cert", cert, "--key", key]
         if ca:
             apply_args += ["--ca-bundle", ca]
     outcome = crud_command(context, operation, *apply_args)
     ok(f"{action}: {outcome['status']}")
     file_hint("Lifecycle journal", outcome["journal"])
-    if is_delete:
+    if has_original:
         file_hint("Encrypted recovery backup",
-                  plan_path.with_name(f"delete-{planid}-backup.age"))
+                  plan_path.with_name(f"{operation}-{planid}-backup.age"))
         hint("Preserve the backup, plan, journal and recovery key. Restore is a separate action.")
+    return outcome
+
+
+def delete_recovery_wizard(args):
+    """Reconcile first; restoration is never implicit and never a Delete retry."""
+    header("DELETE RECOVERY / GUARDED RESTORE")
+    warning("Read-only reconciliation first; uncertain mutations are NOT automatically retried.")
+    hint("Requires original Delete plan, journal and protected age backup.")
+    contexts = exec_read(["kubectl", "config", "get-contexts", "-o", "name"]).splitlines()
+    context = args.context or choose("Kubernetes context", contexts)
+    check(context in contexts, "Unknown Kubernetes context")
+    namespace = ask("Original namespace")
+    name = ask("Original TLS Secret name")
+    plan_path = Path(ask("Original delete-PLAN_ID-plan.json path")).expanduser()
+    check(bool(namespace) and bool(name) and plan_path.is_file() and
+          not plan_path.is_symlink(), "Recovery requires exact target and a real Delete plan")
+    opts = ["--namespace", namespace, "--secret", name, "--plan", plan_path]
+    result = crud_command(context, "reconcile-delete", *opts)
+    print("  Target:", result["target"])
+    print("  Kubernetes observation:", result["observation"])
+    print("  Prior Delete journal:", result["journal_status"])
+    print("  Encrypted backup present:", result["backup_present"])
+    hint("A current observation does not prove an uncertain API write succeeded.")
+    if not result["restore_eligible"]:
+        warning("Guided Restore is on HOLD; inspect the journal and live cluster manually.")
+        hint("UNKNOWN, drift, an existing Secret, or older unpinned plans must not be overridden.")
+        return result
+    if ask("Type RESTORE to review a single new Secret create (Enter=Back)") != "RESTORE":
+        ok("Reconciliation completed; no Kubernetes Secret modified.")
+        return result
+    exact = f"{namespace}/{name}"
+    check(ask(f"Type RESTORE {exact} to confirm") == f"RESTORE {exact}",
+          "Restore target confirmation mismatch")
+    identity, _ = local_recovery_identity(allow_setup=False)
+    outcome = crud_command(context, "restore-delete", *opts,
+                           "--backup-identity", identity,
+                           "--approve", result["plan_id"],
+                           "--confirm-target", exact, "--operator-mode",
+                           "--operator-ack", f"RESTORE {exact}")
+    ok("RESTORE: " + outcome["status"])
+    file_hint("Restore journal", outcome["journal"])
+    hint("Restored Secret has a new UID. Verify workload consumers, trust and HTTPS.")
     return outcome
 
 
@@ -1957,6 +2047,9 @@ def main_menu(args):
         print()
         menu_entry("10", "Create TLS Secret", caution=True)
         menu_entry("11", "Delete TLS Secret", caution=True)
+        menu_entry("12", "Update TLS Secret", caution=True)
+        menu_entry("13", "Age setup / recovery help")
+        menu_entry("14", "Delete recovery / Restore", caution=True)
         menu_entry("0", "Exit")
         print()
         try:
@@ -2008,6 +2101,15 @@ def main_menu(args):
                 continue
             if choice == "11":
                 crud_wizard(args, "delete")
+                continue
+            if choice == "12":
+                crud_wizard(args, "update")
+                continue
+            if choice == "13":
+                age_recovery_help()
+                continue
+            if choice == "14":
+                delete_recovery_wizard(args)
                 continue
             if choice == "8":
                 header("STATUS REFERENCE GUIDE")

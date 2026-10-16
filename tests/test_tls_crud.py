@@ -72,7 +72,7 @@ class CrudSafetyTests(unittest.TestCase):
         pods = {"items": [{"spec": {"volumes": [{"secret": {"secretName": "demo-tls"}}]}}]}
         gw = {"items": [{"metadata": {"namespace": "demo"}, "spec": {"listeners": [
             {"tls": {"certificateRefs": [{"name": "demo-tls"}]}}]}}]}
-        with patch.object(m, "kube_json", side_effect=[ing, pods, gw]), \
+        with patch.object(m, "kube_json", side_effect=[ing, pods, {"items": []}, gw]), \
              patch.object(m, "kube", return_value=b"gateways.gateway.networking.k8s.io\n"):
             blockers = m.dependency_evidence("sandbox", "demo", "demo-tls")
         self.assertEqual(blockers, ["Gateway TLS certificateRef", "Ingress TLS reference", "Pod dependency"])
@@ -82,10 +82,10 @@ class CrudSafetyTests(unittest.TestCase):
         ing = {"items": []}
         pods = {"items": []}
         similar = b"malicious-gateways.gateway.networking.k8s.io\n"
-        with patch.object(m, "kube_json", side_effect=[ing, pods]) as read, \
+        with patch.object(m, "kube_json", side_effect=[ing, pods, {"items": []}]) as read, \
              patch.object(m, "kube", return_value=similar):
             self.assertEqual(m.dependency_evidence("sandbox", "demo", "demo-tls"), [])
-        self.assertEqual(read.call_count, 2)
+        self.assertEqual(read.call_count, 3)
 
     def test_detailed_dependency_evidence_identifies_exact_consumers(self):
         ingress = {"items": [{"metadata": {"name": "web", "namespace": "demo"},
@@ -95,12 +95,50 @@ class CrudSafetyTests(unittest.TestCase):
         gateway = {"items": [{"metadata": {"name": "edge", "namespace": "demo"},
                               "spec": {"listeners": [
                                   {"tls": {"certificateRefs": [{"name": "demo-tls"}]}}]}}]}
-        with patch.object(m, "kube_json", side_effect=[ingress, pods, gateway]), \
+        with patch.object(m, "kube_json", side_effect=[ingress, pods, {"items": []}, gateway]), \
              patch.object(m, "kube", return_value=b"gateways.gateway.networking.k8s.io\n"):
             found = m.dependency_evidence("sandbox", "demo", "demo-tls", detailed=True)
         self.assertEqual(found, ["Gateway TLS certificateRef: demo/edge",
                                  "Ingress TLS reference: demo/web",
                                  "Pod dependency: demo/web-76c"])
+
+    def test_cross_namespace_gateway_reference_blocks_target_delete(self):
+        gateway = {"metadata": {"namespace": "edge", "name": "edge-gw"},
+                   "spec": {"listeners": [{"tls": {"certificateRefs": [
+                       {"group": "", "kind": "Secret",
+                        "name": "demo-tls", "namespace": "demo"}]}}]}}
+        with patch.object(m, "kube_json", side_effect=[
+                {"items": []}, {"items": []}, {"items": []}, {"items": [gateway]}]), \
+             patch.object(m, "kube", return_value=b"gateways.gateway.networking.k8s.io\n"):
+            refs = m.dependency_evidence("ctx", "demo", "demo-tls", detailed=True)
+        self.assertEqual(refs, ["Gateway TLS certificateRef: edge/edge-gw"])
+
+    def test_dormant_deployment_and_cronjob_hold_delete(self):
+        # No active Pod exists; templates still guarantee future Secret use.
+        deploy = {"kind": "Deployment", "metadata": {"name": "sleeping", "namespace": "demo"},
+                  "spec": {"replicas": 0, "template": {"spec": {
+                      "containers": [{"name": "web", "envFrom": [
+                          {"secretRef": {"name": "demo-tls"}}]}]}}}}
+        cron = {"kind": "CronJob", "metadata": {"name": "scheduled", "namespace": "demo"},
+                "spec": {"suspend": True, "jobTemplate": {"spec": {"template": {
+                    "spec": {"volumes": [{"secret": {"secretName": "demo-tls"}}]}}}}}}
+        with patch.object(m, "kube_json", side_effect=[
+                {"items": []}, {"items": []}, {"items": [deploy, cron]}]), \
+             patch.object(m, "kube", return_value=b""):
+            refs = m.dependency_evidence("sandbox", "demo", "demo-tls", detailed=True)
+        self.assertEqual(refs, ["CronJob template reference: demo/scheduled",
+                                "Deployment template reference: demo/sleeping"])
+
+    def test_workload_scan_forbidden_or_malformed_fails_closed(self):
+        with patch.object(m, "kube_json", side_effect=[
+                {"items": []}, {"items": []}, m.Stop("RBAC denied")]):
+            with self.assertRaisesRegex(m.Stop, "RBAC denied"):
+                m.dependency_evidence("sandbox", "demo", "demo-tls")
+        with patch.object(m, "kube_json", side_effect=[
+                {"items": []}, {"items": []}, {"items": [
+                    {"kind": "Deployment", "spec": {}}]}]):
+            with self.assertRaisesRegex(m.Stop, "Malformed workload"):
+                m.dependency_evidence("sandbox", "demo", "demo-tls")
 
     def test_delete_ownership_reports_a_named_hold(self):
         target = obj()
@@ -210,6 +248,110 @@ class CrudSafetyTests(unittest.TestCase):
                     m.apply(kwargs)
             journal = json.loads((Path(tmp) / f"delete-{plan['plan_id']}-journal.json").read_text())
             self.assertEqual(journal["status"], "MUTATION_UNCERTAIN")
+
+    def test_delete_recovery_reconcile_never_mutates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            planpath, plan = m.write_plan(tmp, {
+                "action": "DELETE", "context": "sandbox", "cluster_uid": "cluster1",
+                "namespace_uid": "ns1", "namespace": "demo", "secret": "demo-tls",
+                "uid": "old", "resource_version": "7", "old_fingerprint": "fp"})
+            journal = Path(tmp) / f"delete-{plan['plan_id']}-journal.json"
+            journal.write_text(json.dumps({"action": "DELETE",
+                "plan_id": plan["plan_id"], "status": "MUTATION_UNCERTAIN"}))
+            with patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "find_target", return_value=None), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "ns1"}}), \
+                 patch.object(m, "kube", side_effect=AssertionError("Never mutate during reconcile")):
+                result = m.delete_recovery_evidence(args(plan=str(planpath)))
+            self.assertEqual(result["observation"], "OBSERVED_ABSENT")
+            self.assertEqual(result["journal_status"], "MUTATION_UNCERTAIN")
+            self.assertFalse(result["restore_eligible"])
+
+    def test_reconcile_eligibility_requires_backup_and_namespace_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            planpath, plan = m.write_plan(tmp, {
+                "action": "DELETE", "context": "sandbox", "cluster_uid": "cluster1",
+                "namespace_uid": "ns1", "namespace": "demo", "secret": "demo-tls",
+                "uid": "old", "resource_version": "7", "old_fingerprint": "fp"})
+            (Path(tmp) / f"delete-{plan['plan_id']}-journal.json").write_text(json.dumps({
+                "action": "DELETE", "plan_id": plan["plan_id"],
+                "status": "COMPLETE_ABSENCE_VERIFIED", "prior_uid": "old"}))
+            backup = Path(tmp) / f"delete-{plan['plan_id']}-backup.age"
+            with patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "find_target", return_value=None), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "ns1"}}):
+                missing = m.delete_recovery_evidence(args(plan=str(planpath)))
+                self.assertFalse(missing["restore_eligible"])
+                self.assertFalse(missing["backup_present"])
+                backup.write_bytes(b"SYNTHETIC ENCRYPTED MATERIAL")
+                backup.chmod(0o600)
+                eligible = m.delete_recovery_evidence(args(plan=str(planpath)))
+                self.assertTrue(eligible["restore_eligible"])
+            with patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "find_target", return_value=None), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "changed-ns"}}):
+                drift = m.delete_recovery_evidence(args(plan=str(planpath)))
+                self.assertFalse(drift["restore_eligible"])
+                self.assertFalse(drift["namespace_identity_match"])
+
+    def test_restore_blocks_unknown_delete_journal_without_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            planpath, plan = m.write_plan(tmp, {
+                "action": "DELETE", "context": "sandbox", "cluster_uid": "cluster1",
+                "namespace_uid": "ns1", "namespace": "demo", "secret": "demo-tls",
+                "uid": "old", "resource_version": "7", "old_fingerprint": "fp"})
+            (Path(tmp) / f"delete-{plan['plan_id']}-journal.json").write_text(json.dumps({
+                "action": "DELETE", "plan_id": plan["plan_id"],
+                "status": "MUTATION_UNCERTAIN", "prior_uid": "old"}))
+            target = args(plan=str(planpath), operator_mode=True, approve=plan["plan_id"],
+                          confirm_target="demo/demo-tls", operator_ack="RESTORE demo/demo-tls")
+            with patch.object(m.sys.stdin, "isatty", return_value=True), \
+                 patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "ns1"}}), \
+                 patch.object(m, "kube", side_effect=AssertionError("No write on uncertain state")):
+                with self.assertRaisesRegex(m.Stop, "not verified complete"):
+                    m.restore_deleted_secret(target)
+
+    def test_restore_is_create_only_and_verifies_original_encrypted_backup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            planpath, plan = m.write_plan(tmp, {
+                "action": "DELETE", "context": "sandbox", "cluster_uid": "cluster1",
+                "namespace_uid": "ns1", "namespace": "demo", "secret": "demo-tls",
+                "uid": "uid-demo-1", "resource_version": "20", "old_fingerprint": "fp"})
+            original = obj()
+            (Path(tmp) / f"delete-{plan['plan_id']}-journal.json").write_text(json.dumps({
+                "action": "DELETE", "plan_id": plan["plan_id"],
+                "status": "COMPLETE_ABSENCE_VERIFIED", "prior_uid": "uid-demo-1"}))
+            ciphertext = Path(tmp) / f"delete-{plan['plan_id']}-backup.age"
+            ciphertext.write_bytes(b"ENCRYPTED TEST FIXTURE")
+            ciphertext.chmod(0o600)
+            identity = Path(tmp) / "recovery.agekey"
+            identity.write_text("SYNTHETIC IDENTITY")
+            identity.chmod(0o600)
+            restored = {**original, "metadata": {
+                **original["metadata"], "uid": "new-uid", "resourceVersion": "25"}}
+            target = args(plan=str(planpath), operator_mode=True, approve=plan["plan_id"],
+                          confirm_target="demo/demo-tls", operator_ack="RESTORE demo/demo-tls",
+                          backup_identity=str(identity))
+            writes = []
+            def write(ctx, *argv, **kw):
+                writes.append((argv, kw))
+                return b"{}"
+            with patch.object(m.sys.stdin, "isatty", return_value=True), \
+                 patch.object(m, "context_uid", return_value="cluster1"), \
+                 patch.object(m, "kube_json", return_value={"metadata": {"uid": "ns1"}}), \
+                 patch.object(m, "find_target", side_effect=[None, None, restored]), \
+                 patch.object(m, "call", return_value=m.canonical(original)), \
+                 patch.object(m, "fingerprint_from_der_or_pem", return_value="fp"), \
+                 patch.object(m, "kube", side_effect=write):
+                result = m.restore_deleted_secret(target)
+            self.assertEqual(result["status"], "COMPLETE_SECRET_RESTORED")
+            self.assertEqual(writes[0][0][2], "create")
+            sent = json.loads(writes[0][1]["payload"])
+            self.assertEqual(sent["data"], original["data"])
+            self.assertNotIn("uid", sent["metadata"])
+            journal = json.loads(Path(result["journal"]).read_text())
+            self.assertNotIn("tls.key", json.dumps(journal))
 
     def test_create_submit_does_not_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:

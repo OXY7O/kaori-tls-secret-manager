@@ -40,7 +40,7 @@ Designed for **human-controlled infrastructure operations**: inspect before chan
 | **Prometheus textfile metrics** | Export aggregate expiration/audit gauges to a local .prom file | Export only; does not configure or push into Prometheus |
 | **Renew / Update** | Guided target discovery, selective READY/HOLD/SKIPPED review and renewal; optional single-target same-SAN CRUD Update | Fresh plans, authorized writes, encrypted backups, journaling, scoped recovery |
 | **Create** | Guided Create or plan-create/create commands | Validates supplied PEM/key, checks target absence, never overwrites |
-| **Delete / decommission** | Guided Delete or plan-delete/delete commands | **HOLD** when Ingress/Pod/Gateway references, ownership or visibility blocks safety; backup before deletion, API UID/resourceVersion preconditions |
+| **Delete / decommission** | Guided Delete or plan-delete/delete commands | **HOLD** when Ingress/Pod/Gateway/workload-template references, ownership or visibility blocks safety; backup before deletion, API UID/resourceVersion preconditions |
 | **Recovery & evidence** | Run history, HOLD review, HTTPS re-verification and guarded rollback flows | No blind retries after an uncertain mutation; private local artifacts |
 
 This is not an unattended controller. In particular, a clean Kubernetes reference scan **does not prove** a Secret is unused by external load balancers, proxies or integrations; a human must confirm external dependencies before Delete.
@@ -70,6 +70,22 @@ bash scripts/tls-secret-manager.sh wizard --plain
 
 The guided interface starts automatically when you run the launcher without arguments. Select **Help** to explore features or **Exit** to leave. Accepting the default selection starts read-only Inventory, which accesses your selected Kubernetes context.
 
+### Recovery encryption with age (before Update/Delete)
+
+KAORI requires the `age` utility for **encrypted recovery backups**. The guided wizard can create your recovery identity on the first authorized Update/Delete **after** the plan and confirmations; a read-only plan or HOLD does not create a key.
+
+To prepare your own recovery key in advance (optional):
+
+~~~bash
+umask 077
+install -d -m 700 "$HOME/.config/kaori-tls"
+age-keygen -o "$HOME/.config/kaori-tls/recovery.agekey"
+chmod 600 "$HOME/.config/kaori-tls/recovery.agekey"
+age-keygen -y "$HOME/.config/kaori-tls/recovery.agekey"  # prints public recipient only
+~~~
+
+**Important:** Securely keep an independent copy of `recovery.agekey`, never commit or print its contents, and retain the `*-backup.age`, plan and journal after each operation. If the identity is lost, encrypted backups may be unrecoverable. See **[age setup & recovery guide](docs/AGE-RECOVERY.md)** for wizard steps, verification, troubleshooting and guarded Restore procedures.
+
 ### First read-only commands
 
 ~~~bash
@@ -90,13 +106,13 @@ Read-only CRUD results are JSON. The CRUD engine requires the global **--context
 
 ## Guided operations
 
-The interactive interface groups **Inventory**, **Expiry Audit**, **TLS Toolbox**, **HTTPS Verification**, **Renewal**, **HOLD Review**, **Run History**, **Create**, and **Delete** in one place. Select the operation by its displayed name; numeric shortcuts can change between versions.
+The interactive interface groups **Inventory**, **Expiry Audit**, **TLS Toolbox**, **HTTPS Verification**, **Renewal**, **HOLD Review**, **Run History**, **Create**, **Update**, **Delete**, **Delete Recovery / Restore**, and **Age help** in one place. Select the operation by its displayed name; numeric shortcuts can change between versions.
 
 For a new TLS Secret or HTTPS endpoint, use **TLS Toolbox → TLS Doctor**. **Reverify HTTPS** examines evidence from a previously saved renewal run.
 
-Interactive Create/Delete is optimized for a **single authorized operator**: select context, namespace and exact Secret; review the read-only plan; explicitly type **PROCEED** to continue. Delete also requires an **UNUSED** external-consumer attestation and exact target confirmation; KAORI provisions/reuses a protected age recovery identity and verifies its encrypted backup before the write. Optional **independently signed approvals** remain supported for advanced non-interactive workflows. There is no force-delete shortcut.
+Interactive Create/Update/Delete is optimized for a **single authorized operator**: select context, namespace and exact Secret; review the read-only plan; explicitly type **PROCEED** to continue. Delete also requires an **UNUSED** external-consumer attestation and exact target confirmation; KAORI provisions/reuses a protected age recovery identity and verifies its encrypted backup before the write. Optional **independently signed approvals** remain supported for advanced non-interactive workflows. There is no force-delete shortcut.
 
-Read the [single-operator Delete walkthrough](docs/DELETE-TLS-SECRET-SOP.md) before using the Delete workflow.
+Read the [single-operator Delete walkthrough](docs/DELETE-TLS-SECRET-SOP.md) and [age encryption / recovery key guide](docs/AGE-RECOVERY.md) before Update/Delete. The wizard includes guided **Update TLS Secret** and **Age setup / recovery help**.
 
 ## Commands and usage
 

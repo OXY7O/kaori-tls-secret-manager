@@ -67,7 +67,10 @@ the context name.
    - enter an approved concrete hostname: probe live HTTPS with SNI,
      hostname validation, certificate trust, and fingerprint comparison.
 6. For a hostname probe, optionally provide the approved internal **CA bundle**
-   path. Enter uses system trust only.
+   path. Enter uses system trust only. The wizard can also accept a specific
+   approved LB IP/host as the **connect target**. TLS SNI and hostname trust
+   verification still use the original hostname, not the override.
+   This is useful during migration while DNS points to the old cluster.
 7. Review **Stored**, **HTTPS** and diagnosis lines. A JSON evidence file is
    written beneath `~/k8s-tls-private/wizard-runs/toolkit-reports/`.
 

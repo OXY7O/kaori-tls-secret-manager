@@ -4,6 +4,8 @@
 
 **Safety:** Follow your organization’s Kubernetes authorization, dependency verification and change-management requirements before any deletion. There are no external approval JSON files, signature files, trusted approver key installation, or separate role handoffs in the **interactive single-operator workflow**.
 
+For `age` installation, identity setup, secure custody, recovery-key testing and incident recovery, see [the age guide](AGE-RECOVERY.md).
+
 ## One-time setup
 
 Install Git, Python 3.10+, kubectl, OpenSSL and age. Use an authorized Kubernetes context and scoped permissions. Run:
@@ -24,7 +26,7 @@ If neither exists, the wizard offers to create one. Type SETUP once, then RECOVE
 2. Choose **Delete TLS Secret** from the guided operations.
 3. Select the intended **Kubernetes context** and **namespace**; type the **exact Secret name**.
 4. Accept the private evidence directory under ~/k8s-tls-private/crud-runs/ (or choose another directory outside the Git checkout). Recovery-key setup is requested later, only if the Secret is eligible and you confirm a real Delete. HOLD and plan-only leave the local recovery setup untouched.
-5. **Step 1/3 (read-only preflight):** KAORI checks controller ownership, Ingress TLS references, Pod Secret mounts/env/imagePullSecrets and Gateway TLS certificateRefs. If a consumer is detected, KAORI immediately shows **DELETE ON HOLD / READ ONLY**, the names of detected resources, and the local HOLD evidence file; **no executable plan, recovery-key setup, or Kubernetes write occurs**. If discovery fails due to RBAC or API errors, KAORI shows **DEPENDENCY_SCAN_INCOMPLETE** and also holds. Only an eligible target receives an immutable delete plan, valid for under 30 minutes.
+5. **Step 1/3 (read-only preflight):** KAORI checks controller ownership, Ingress TLS references, Pod Secret mounts/env/imagePullSecrets, standard workload controller Pod templates (including scale-to-zero and suspended CronJobs), and Gateway TLS certificateRefs (including cross-namespace references). If a consumer is detected, KAORI immediately shows **DELETE ON HOLD / READ ONLY**, the names of detected resources, and the local HOLD evidence file; **no executable plan, recovery-key setup, or Kubernetes write occurs**. If discovery fails due to RBAC or API errors, KAORI shows **DEPENDENCY_SCAN_INCOMPLETE** and also holds. Only an eligible target receives an immutable delete plan, valid for under 30 minutes.
 6. Press **Enter** to keep the plan only, or type **PROCEED** if you intend to continue to the guided deletion in this same session.
 7. **Step 2/3 (human confirmation):** KAORI asks for UNUSED to confirm you have assessed possible **external** consumers (monitoring, external LB, proxy, integrations, manual mounts). Then type the exact string shown on-screen, such as DELETE namespace/secret. KAORI binds and validates the immutable Plan ID internally; you do not need to copy it. These are the operator's own confirmations, not external approval artifacts.
 8. **Step 3/3 (one attempted write):** KAORI validates the still-current plan and Kubernetes UID/resourceVersion, rechecks consumers/ownership/fingerprint, automatically produces an age-encrypted backup, **decrypts it locally and checks it matches the original Secret before deleting**, writes an execution journal, performs Kubernetes DELETE with API preconditions, and verifies the Secret is absent.
@@ -42,7 +44,7 @@ Lifecycle journal: .../delete-<PLAN_ID>-journal.json
 Encrypted recovery backup: .../delete-<PLAN_ID>-backup.age
 ~~~
 
-To verify the resource is absent, use the exact context/namespace/name displayed by KAORI:
+For a separate authorized restore after a **verified** Delete, open **Delete recovery / Restore** and provide the original plan path; it performs read-only reconciliation before any write. Do not restore from an uncertain journal or overwrite a new Secret.\n\nTo verify the resource is absent, use the exact context/namespace/name displayed by KAORI:
 
 ~~~bash
 kubectl --context "APPROVED_CONTEXT" -n "APPROVED_NAMESPACE" \

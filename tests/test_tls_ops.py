@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT))
 spec = importlib.util.spec_from_file_location("tls_ops_tests", ROOT / "tls_ops.py")
 ops = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ops)
-import tls_secret_manager as helper
+helper = importlib.import_module("tls_secret_manager")
 
 FP_A = "a" * 64
 FP_B = "b" * 64
@@ -112,7 +112,8 @@ class TLSOpsTests(unittest.TestCase):
              patch.object(ops, "ingress_references", return_value={
                  "web-tls": [{"ingress": "main", "host": "web.example.test"}]
              }), patch.object(ops, "owners_from_pods", return_value=pods), \
-             patch.object(ops, "discover_gateways", return_value=(gateway, "CHECKED")):
+             patch.object(ops, "discover_gateways", return_value=(gateway, "CHECKED")), \
+             patch.object(ops, "owners_from_workloads", return_value=[]):
             result = ops.dependency_report("ctx", "dev", "web-tls")
         self.assertEqual(result["consumer_count"], 3)
         self.assertIn("external", result["limitation"].lower())
@@ -123,6 +124,23 @@ class TLSOpsTests(unittest.TestCase):
              patch.object(ops, "owners_from_pods", side_effect=helper.Stop("RBAC denied")):
             with self.assertRaisesRegex(helper.Stop, "RBAC denied"):
                 ops.dependency_report("ctx", "dev", "web-tls")
+
+    def test_workload_references_detect_scale_to_zero(self):
+        deployment = {"kind": "Deployment", "metadata": {"name": "offline-web"},
+                      "spec": {"replicas": 0, "template": {"spec": {
+                          "volumes": [{"name": "server-tls", "secret": {"secretName": "web-tls"}}]}}}}
+        cronjob = {"kind": "CronJob", "metadata": {"name": "cron"},
+                   "spec": {"jobTemplate": {"spec": {"template": {"spec": {
+                       "containers": [{"name": "app", "envFrom": [
+                           {"secretRef": {"name": "web-tls"}}]}]}}}}}}
+        with patch.object(ops, "kube_json", return_value={"items": [deployment, cronjob]}):
+            usages = ops.owners_from_workloads("ctx", "dev", "web-tls")
+        self.assertEqual({u["kind"] for u in usages}, {"Deployment", "CronJob"})
+
+    def test_workload_rbac_failure_does_not_assert_unused(self):
+        with patch.object(ops, "kube_json", side_effect=helper.Stop("Forbidden")):
+            with self.assertRaisesRegex(helper.Stop, "Forbidden"):
+                ops.owners_from_workloads("ctx", "dev", "web-tls")
 
     def test_pod_dependency_volume_and_env_refs(self):
         data = {"items": [{"metadata": {"name": "worker"},
@@ -160,6 +178,21 @@ class TLSOpsTests(unittest.TestCase):
             result = ops.doctor("ctx", "dev", "web-tls", "web.example.test")
         self.assertEqual(result["endpoint"]["status"], "FINGERPRINT_MISMATCH")
         self.assertIn("external TLS terminator", " ".join(result["diagnosis"]))
+
+    def test_doctor_manual_lb_ip_preserves_sni_hostname(self):
+        with patch.object(ops, "secret", return_value=secret()), \
+             patch.object(ops, "ingress_references", return_value={
+                 "web-tls": [{"host": "web.example.test"}]}), \
+             patch.object(ops, "validate_stored_tls", return_value={
+                 "status": "VALID", "key_match": "MATCH",
+                 "fingerprint_sha256": FP_A}), \
+             patch.object(ops, "probe_https_endpoint", return_value={
+                 "fingerprint": FP_A, "tls_version": "TLSv1.3"}) as probe:
+            result = ops.doctor("ctx", "dev", "web-tls", "web.example.test",
+                                connect_host="192.0.2.10")
+        self.assertEqual(result["endpoint"]["status"], "MATCH")
+        self.assertEqual(result["endpoint"]["connect_host"], "192.0.2.10")
+        probe.assert_called_once_with("web.example.test", "192.0.2.10", 443, None)
 
     def test_drift_scans_dns_ip_separately_and_flags_split_fingerprint(self):
         obj = secret()
