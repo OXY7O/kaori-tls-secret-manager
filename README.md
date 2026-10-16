@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Quality Gate" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.5"><img alt="Release v0.2.5" src="https://img.shields.io/badge/release-v0.2.5-blue"></a>
+  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.6"><img alt="Release v0.2.6" src="https://img.shields.io/badge/release-v0.2.6-blue"></a>
 </p>
 
 <p align="center">
@@ -62,7 +62,7 @@ sudo apt install -y git python3 openssl age ca-certificates
 
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
-git checkout v0.2.5  # pin the published release; omit for the latest source
+git checkout v0.2.6  # pin the published release; omit for the latest source
 
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
@@ -168,14 +168,14 @@ See the [security policy](SECURITY.md) and [architecture](docs/ARCHITECTURE.md).
 
 ## Release and compatibility
 
-**Current release:** [`v0.2.5`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.5), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
+**Current release:** [`v0.2.6`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.6), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
 
 - **Automated quality:** GitHub Actions **Quality Gate** checks syntax, regression tests, command entrypoints and absence of cluster credentials (Ubuntu, Python 3.12).
 - **Runtime requirements:** Linux/WSL, Python 3.10+, Bash, OpenSSL and `age`; add `kubectl` and authorized RBAC for Kubernetes operations. Platform and cluster compatibility depend on your environment.
 - **Not provided:** self-contained binaries, Docker images, Homebrew packages, ACME issuance, continuous reconciliation controller, or unattended destructive operations.
 - **Operational responsibility:** Before a write, verify scope, permissions, workload dependencies, encrypted recovery and the served HTTPS certificate when applicable. Automated CI does not exercise external Kubernetes environments.
 
-Read the [release notes](docs/releases/v0.2.5.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
+Read the [release notes](docs/releases/v0.2.6.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
 
 ## Documentation & community
 

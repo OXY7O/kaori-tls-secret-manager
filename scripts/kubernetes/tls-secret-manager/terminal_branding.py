@@ -48,10 +48,19 @@ def _color_code(index, *, background, truecolor):
     return f"\x1b[{48 if background else 38};5;{ANSI_256[index]}m"
 
 
+ICON_CELLS = 16
+ICON_ROWS = 8
+
+
 def pixel_rows(*, truecolor=False):
-    """One Unicode half-block is two source pixels; rows occupy 20 columns."""
+    """Compact 16x8 terminal mark: resample the approved 20x20 pixel grid."""
+    sampled = [
+        "".join(PIXELS[min(19, (y * 20) // 16)][min(19, (x * 20) // 16)]
+                for x in range(ICON_CELLS))
+        for y in range(ICON_ROWS * 2)
+    ]
     lines = []
-    for top, bottom in zip(PIXELS[::2], PIXELS[1::2]):
+    for top, bottom in zip(sampled[::2], sampled[1::2]):
         segments = []
         previous = None
         for upper, lower in zip(top, bottom):
@@ -80,7 +89,7 @@ def inline_iterm_icon(stream, image_file=ICON_FILE, *, environ=None, newline=Tru
     if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > 100_000:
         return False
     encoded = base64.b64encode(data).decode("ascii")
-    stream.write("\x1b]1337;File=inline=1;width=18;height=10;preserveAspectRatio=1:"
+    stream.write("\x1b]1337;File=inline=1;width=16;height=8;preserveAspectRatio=1:"
                  + encoded + "\x07")
     if newline:
         stream.write("\n")
@@ -115,14 +124,14 @@ def render_header(product="KAORI", subtitle="TLS Secret Management", *,
 
     # One line of text in the right-hand column always remains within
     # a normal terminal width; keep one spare column to prevent auto-wrap.
-    left_width = 2 + 20 + len(" │ ")
+    left_width = 2 + ICON_CELLS + len(" │ ")
     if max(len(product), len(subtitle)) + left_width >= columns:
         output.write(f"  [KAORI]  {product}\n")
         output.write(f"           {subtitle}\n")
         output.write(_divider(columns, False))
         return "plain"
 
-    labels = {3: product, 5: subtitle}
+    labels = {2: product, 4: subtitle}
 
     # Use the real PNG only where iTerm2 explicitly advertises support.
     # Cursor save/restore keeps text aligned without rendering a second icon.
@@ -130,12 +139,12 @@ def render_header(product="KAORI", subtitle="TLS Secret Management", *,
         output.write("  \x1b7")
         if inline_iterm_icon(output, image_file, environ=env, newline=False):
             output.write("\x1b8")
-            for index in range(10):
+            for index in range(ICON_ROWS):
                 label = labels.get(index, "")
                 if label:
-                    tone = 97 if index == 3 else 37
+                    tone = 97 if index == 2 else 37
                     label = f"\x1b[{tone}m{label}\x1b[0m"
-                output.write("  " + " " * 20 + " │ " + label + "\n")
+                output.write("  " + " " * ICON_CELLS + " │ " + label + "\n")
             output.write(_divider(columns, True))
             return "iterm"
         output.write("\x1b8")

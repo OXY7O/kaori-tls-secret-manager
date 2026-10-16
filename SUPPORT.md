@@ -21,4 +21,4 @@ Do **not** open a public issue for an exploitable vulnerability. See [SECURITY.m
 
 ## Operational responsibility
 
-KAORI `v0.2.5` is distributed as-is under Apache-2.0 without an SLA, managed infrastructure service, or environment-specific certification. Maintainers cannot access or authorize changes in your clusters. For any live incident, follow your organization's incident response, certificate owner and recovery procedure.
+KAORI `v0.2.6` is distributed as-is under Apache-2.0 without an SLA, managed infrastructure service, or environment-specific certification. Maintainers cannot access or authorize changes in your clusters. For any live incident, follow your organization's incident response, certificate owner and recovery procedure.

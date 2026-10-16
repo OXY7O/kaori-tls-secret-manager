@@ -37,7 +37,7 @@ class TerminalBrandTests(unittest.TestCase):
         mode = brand.render_header(stream=output, environ=env, width=80)
         self.assertEqual(mode, "iterm")
         rendered = output.getvalue()
-        self.assertIn("File=inline=1;width=18;height=10;", rendered)
+        self.assertIn("File=inline=1;width=16;height=8;", rendered)
         encoded = rendered.split(":", 1)[1].split("\x07", 1)[0]
         self.assertEqual(base64.b64decode(encoded), brand.ICON_FILE.read_bytes())
         self.assertIn("\x1b7", rendered)
@@ -83,6 +83,7 @@ class TerminalBrandTests(unittest.TestCase):
         subtitle = next(i for i, line in enumerate(cleaned)
                         if "TLS Secret Management" in line)
         self.assertEqual(subtitle - title, 2)
+        self.assertEqual(sum(' │ ' in line for line in cleaned), 8)
 
     def test_custom_title_is_readable_and_not_glyph_limited(self):
         output = TtyStream()
@@ -101,9 +102,9 @@ class TerminalBrandTests(unittest.TestCase):
 
     def test_ansi_grid_keeps_correct_dimensions_and_reset(self):
         rows = brand.pixel_rows(truecolor=True)
-        self.assertEqual(len(rows), 10)
+        self.assertEqual(len(rows), 8)
         self.assertTrue(all(row.endswith("\x1b[0m") for row in rows))
-        self.assertTrue(all(row.count("▀") == 20 for row in rows))
+        self.assertTrue(all(row.count("▀") == 16 for row in rows))
         self.assertTrue(any("\x1b[38;2;" in row for row in rows))
 
     def test_plain_no_color_dumb_redirect_narrow_and_disabled_unicode(self):

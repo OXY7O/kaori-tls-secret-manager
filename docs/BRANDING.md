@@ -46,3 +46,7 @@ render_header("KAORI", "MY CLI TOOL",
 ```
 
 No branding routine may contact a cluster, install packages or mutate credentials. Test actual color TTY and plain mode before adoption.
+
+## Compact terminal layout (v0.2.6)
+
+Interactive ANSI terminals render the approved violet logo in a 16-cell-wide by 8-row grid, with a vertical rule of equal height and the two-line readable label centered alongside it. iTerm2 uses the original PNG displayed at 16x8 terminal cells. The underlying image assets and README wordmark remain unchanged. This is a human-facing terminal convention only; width-aware, `--plain`, `NO_COLOR` and redirected-output fallbacks stay escape-free.
