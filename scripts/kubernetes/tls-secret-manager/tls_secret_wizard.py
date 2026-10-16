@@ -144,7 +144,7 @@ def header(title):
 
 def brand_banner():
     """Render the reusable purple KAORI terminal mark; no cluster access."""
-    return render_header("KAORI", "TLS MANAGEMENT",
+    return render_header("KAORI", "TLS Secret Management",
                          color=USE_COLOR, unicode=USE_ICONS)
 
 

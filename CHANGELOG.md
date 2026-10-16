@@ -4,7 +4,22 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 ## [Unreleased]
 
-No subsequent changes beyond v0.2.2 have been recorded.
+No subsequent changes beyond v0.2.3 have been recorded.
+
+## [0.2.3] - 2026-10-16
+
+**Terminal header readability improvement; no Kubernetes behavior change.**
+
+### Changed
+
+- Replace hard-to-read pixel/block-letter titles with **KAORI** and **TLS Secret Management** in a clean two-line terminal layout.
+- Retain the approved violet four-petal icon (iTerm2 inline PNG or ANSI pixel-art fallback), the subtle vertical separator, and the familiar runs/default-operation line.
+- Preserve accessible `--plain`, `NO_COLOR`, redirected output, narrow-terminal behavior, and machine-readable command output.
+- Simplify the reusable CLI header module and extend regression tests for readability, terminal width, image protocol gating and text fallback.
+
+### Scope
+
+- Human-facing terminal UI only; no modifications to TLS certificate management, encryption, Kubernetes writes, or approvals. Real-cluster UAT is a separate operational acceptance step.
 
 ## [0.2.2] - 2026-10-16
 
@@ -130,6 +145,7 @@ No subsequent changes beyond v0.2.2 have been recorded.
 - Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
 - Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
+[0.2.3]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.3
 [0.2.2]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.2
 [0.2.1]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.1
 [0.2.0]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.0
