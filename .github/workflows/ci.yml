@@ -64,10 +64,35 @@ jobs:
           test -z "${KUBECONFIG:-}"
           echo 'No real cluster or Secret write permitted in CI.'
 
-  publish_release:
-    name: Publish Release
+  release_preflight:
+    name: Release Preflight
     needs: quality_gate
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    outputs:
+      publish: ${{ steps.eligibility.outputs.publish }}
+      tag: ${{ steps.eligibility.outputs.tag }}
+    steps:
+      - name: Checkout release metadata only
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Check immutable release and tag before packaging
+        id: eligibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/ci/release_preflight.py \
+            --github-output "$GITHUB_OUTPUT"
+
+  publish_release:
+    name: Publish Release
+    needs: [quality_gate, release_preflight]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.release_preflight.outputs.publish == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     permissions:
@@ -76,11 +101,23 @@ jobs:
       group: kaori-source-release
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout source for the new version only
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
-          fetch-depth: 0
+          fetch-depth: 1
+      - name: Revalidate release eligibility after serialization
+        id: recheck
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/ci/release_preflight.py \
+            --github-output "$GITHUB_OUTPUT"
       - name: Package & Verify
+        if: steps.recheck.outputs.publish == 'true'
+        env:
+          EXPECTED_TAG: ${{ needs.release_preflight.outputs.tag }}
+          RECHECK_TAG: ${{ steps.recheck.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
@@ -89,29 +126,31 @@ jobs:
             echo "::error::VERSION must be a SemVer MAJOR.MINOR.PATCH public release"
             exit 1
           fi
+          TAG="v${VERSION}"
+          test "${TAG}" = "${EXPECTED_TAG}"
+          test "${TAG}" = "${RECHECK_TAG}"
           grep -F "## [${VERSION}]" CHANGELOG.md
-          test -f "docs/releases/v${VERSION}.md"
+          test -f "docs/releases/${TAG}.md"
           test -f assets/kaori-logo.png
           test -f assets/kaori-mark.png
           test "${GITHUB_REF}" = "refs/heads/main"
           mkdir -p dist
-          ARCHIVE="kaori-tls-management-v${VERSION}.tar.gz"
-          git archive --format=tar.gz --prefix="kaori-tls-management-v${VERSION}/" \
+          ARCHIVE="kaori-tls-management-${TAG}.tar.gz"
+          git archive --format=tar.gz --prefix="kaori-tls-management-${TAG}/" \
             --output="dist/${ARCHIVE}" HEAD
           tar -tzf "dist/${ARCHIVE}" >/dev/null
           ( cd dist && sha256sum "${ARCHIVE}" > SHA256SUMS )
-      - name: Publish Tag & Checksums
+      - name: Publish new immutable tag and checksums
+        if: steps.recheck.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_TAG: ${{ needs.release_preflight.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
           VERSION="$(sed -n '1p' VERSION)"
           TAG="v${VERSION}"
-          if gh release view "${TAG}" >/dev/null 2>&1; then
-            echo "Release ${TAG} already exists; immutable release will not be replaced."
-            exit 0
-          fi
+          test "${TAG}" = "${EXPECTED_TAG}"
           gh release create "${TAG}" \
             "dist/kaori-tls-management-${TAG}.tar.gz" dist/SHA256SUMS \
             --target "${GITHUB_SHA}" \
