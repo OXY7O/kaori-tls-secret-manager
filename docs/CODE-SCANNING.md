@@ -1,6 +1,6 @@
 # Code scanning
 
-KAORI TLS Management analyzes **Python source and GitHub Actions workflows** using GitHub CodeQL Advanced Setup.
+KAORI TLS Secret Manager analyzes **Python source and GitHub Actions workflows** using GitHub CodeQL Advanced Setup.
 
 ## Scanning policy
 

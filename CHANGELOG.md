@@ -4,7 +4,24 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 ## [Unreleased]
 
-No subsequent changes beyond v0.2.3 have been recorded.
+No subsequent changes beyond v0.2.4 have been recorded.
+
+## [0.2.4] - 2026-10-16
+
+**Clarify that the product manages Kubernetes TLS Secrets, not certificate issuance or external certificate management.**
+
+### Changed
+
+- Canonical user-facing name: **KAORI TLS Secret Manager**. Scope/positioning: **Safer Kubernetes TLS Secret management**; managed resources are Kubernetes Secrets with type `kubernetes.io/tls`.
+- Replace ambiguous `DEV/UAT only; approval required` renewal warning with precise cluster authorization, single-target operator confirmation and conditions requiring independent signed approval. Read-only operations do not require change approval.
+- Standardize current README, CLI prompts, operator guide, FAQ, Security Policy, help/menu, architecture and project governance terminology without renaming CLI commands or safety statuses.
+- Refresh the repository wordmark to say **KAORI TLS Secret Manager**, with the approved violet emblem; terminal icon and secure operational behavior remain unchanged.
+- Add a scope/authorization glossary and automated wording regression checks to prevent future drift.
+
+### Compatibility
+
+- No changes to Kubernetes CRUD implementation, signed approval requirements, backup/recovery safeguards or certificate handling. CI uses synthetic checks and cannot certify any live cluster.
+- Earlier versioned release notes remain historical records and retain their original release-time wording.
 
 ## [0.2.3] - 2026-10-16
 
@@ -145,6 +162,7 @@ No subsequent changes beyond v0.2.3 have been recorded.
 - Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
 - Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
+[0.2.4]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.4
 [0.2.3]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.3
 [0.2.2]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.2
 [0.2.1]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.1

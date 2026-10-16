@@ -68,7 +68,8 @@ class DocumentationIntegrityTests(unittest.TestCase):
                     self.assertNotIn(name, file.read_text(encoding="utf-8"))
 
     def test_operator_docs_present_current_scope(self):
-        stale = ("dev/uat", "prototype", "development preview", "migration pending", "local test")
+        stale = ("dev/uat only", "only in authorized dev/uat", "prototype",
+                 "development preview", "migration pending", "local test")
         for name in PUBLIC_GUIDES:
             content = (ROOT / name).read_text(encoding="utf-8").lower()
             for phrase in stale:

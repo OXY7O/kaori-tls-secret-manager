@@ -1,6 +1,6 @@
 # Repository maintenance
 
-This document describes GitHub repository metadata, contribution workflow and branch governance for KAORI TLS Management. Configuration settings in GitHub are administered separately from source files.
+This document describes GitHub repository metadata, contribution workflow and branch governance for KAORI TLS Secret Manager. Configuration settings in GitHub are administered separately from source files.
 
 ## Project metadata
 

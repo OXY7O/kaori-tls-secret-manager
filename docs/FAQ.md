@@ -1,8 +1,8 @@
 # Frequently asked questions
 
-### Does KAORI issue or renew a certificate with a CA?
+### Does KAORI manage Kubernetes TLS Secrets or issue certificates?
 
-No. KAORI manages existing **kubernetes.io/tls** Secret material, including replacing an old certificate with a supplied, validated new PEM/fullchain and matching private key. It is not a CA, ACME client or replacement for cert-manager.
+KAORI manages **Kubernetes Secrets of type `kubernetes.io/tls`**, not certificate issuance. It manages existing Secret material, including replacing an old certificate with a supplied, validated new PEM/fullchain and matching private key. It is not a CA, ACME client or replacement for cert-manager.
 
 ### Why can a valid TLS Secret have a different HTTPS fingerprint?
 
@@ -18,7 +18,7 @@ No. External consumers such as load balancers, reverse proxies, scripts, integra
 
 ### Do I need an approver JSON/signature for the interactive wizard?
 
-No. The normal guided Create/Delete paths run under one authorized operator with exact typed target/action confirmations. The independent signed-approval flow is for advanced non-interactive/enterprise integration.
+No. The normal guided Create/Update/Delete paths run under one authorized operator with exact typed target/action confirmations. One-target guided renewal requires `AUTHORIZED` plus exact Plan ID; multi-target or external-TLS-termination renewal additionally requires independent signed approval. The enterprise non-interactive flow uses documented separate signed approval.
 
 ### Why does Delete ask about an age recovery identity?
 
@@ -32,9 +32,9 @@ Delete takes an **encrypted backup** and locally verifies that it can be decrypt
 
 No. KAORI saves a local **.prom** textfile with aggregate audit counts. A separately approved textfile collector or equivalent component must ingest it and keep it refreshed.
 
-### Can KAORI be used in a production environment?
+### Is KAORI restricted to DEV/UAT, or can it be used in production?
 
-KAORI `v0.2.3` is publicly released source code, not a managed service or certified deployment. Use it only with appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
+KAORI `v0.2.4` is publicly released source code, not a managed service or certified deployment. DEV/UAT is recommended for validation, not a hard-coded restriction. Production use requires acceptance testing, appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
 
 ### Where is the full CLI argument list?
 

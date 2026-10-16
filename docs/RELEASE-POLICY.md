@@ -1,6 +1,6 @@
 # Release quality and operational assurance
 
-KAORI TLS Management publishes immutable SemVer source archives with SHA-256 checksums through GitHub Releases. The release workflow is documented in [RELEASING.md](RELEASING.md); the published version is identified by the [VERSION file](../VERSION).
+KAORI TLS Secret Manager publishes immutable SemVer source archives with SHA-256 checksums through GitHub Releases. The release workflow is documented in [RELEASING.md](RELEASING.md); the published version is identified by the [VERSION file](../VERSION).
 
 ## What the Quality Gate verifies
 
@@ -25,4 +25,4 @@ See [Security](../SECURITY.md), [Architecture](ARCHITECTURE.md), [Operator guide
 
 ## Compatibility and maintenance
 
-The current public release is **v0.2.3** under Semantic Versioning. The 0.x series may introduce interface changes between releases; release notes document changes. Operators should use immutable tags for reproducibility and inspect the [changelog](../CHANGELOG.md) before upgrading. No managed infrastructure support or guaranteed response time is included.
+The current public release is **v0.2.4** under Semantic Versioning. The 0.x series may introduce interface changes between releases; release notes document changes. Operators should use immutable tags for reproducibility and inspect the [changelog](../CHANGELOG.md) before upgrading. No managed infrastructure support or guaranteed response time is included.

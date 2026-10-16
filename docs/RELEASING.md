@@ -1,6 +1,6 @@
 # Publishing Semantic Versioned Source Releases
 
-KAORI TLS Management follows [Semantic Versioning](https://semver.org/) using `vMAJOR.MINOR.PATCH` Git tags. The first public source release is `v0.1.0`. The `0.y.z` series allows the project to evolve its CLI, JSON formats and operator workflows between releases.
+KAORI TLS Secret Manager follows [Semantic Versioning](https://semver.org/) using `vMAJOR.MINOR.PATCH` Git tags. The first public source release is `v0.1.0`. The `0.y.z` series allows the project to evolve its CLI, JSON formats and operator workflows between releases.
 
 ## Choosing the version
 

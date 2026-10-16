@@ -1,6 +1,6 @@
 # Project governance
 
-KAORI TLS Management is maintained in the open in the [OXY7O repository](https://github.com/OXY7O/kaori-tls-secret-manager).
+KAORI TLS Secret Manager is maintained in the open in the [OXY7O repository](https://github.com/OXY7O/kaori-tls-secret-manager).
 
 ## Collaboration
 
@@ -18,6 +18,6 @@ Maintainers retain final discretion over merges, security disclosure coordinatio
 
 ## Release lifecycle
 
-KAORI TLS Management publishes versioned releases after the **Quality Gate** passes on `main`. Release tags and dated changelog entries are immutable. The `0.x` series permits interface changes; publishing source code does not confer authorization to modify Kubernetes workloads or a service-level guarantee.
+KAORI TLS Secret Manager publishes versioned releases after the **Quality Gate** passes on `main`. Release tags and dated changelog entries are immutable. The `0.x` series permits interface changes; publishing source code does not confer authorization to modify Kubernetes workloads or a service-level guarantee.
 
 Compatibility-breaking CLI/menu/output changes require explicit rationale, documentation and regression testing. Operational changes must be validated and authorized for the target environment by the responsible operator.
