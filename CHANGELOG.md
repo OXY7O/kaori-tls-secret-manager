@@ -4,7 +4,31 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 ## [Unreleased]
 
-No subsequent user-facing changes have been recorded.
+No additional user-facing changes beyond v0.2.0 have been recorded.
+
+## [0.2.0] - 2026-10-16
+
+**Guarded single-operator Kubernetes TLS lifecycle and encrypted recovery improvements.**
+
+### Added
+
+- Guided same-SAN **Update TLS Secret** using explicit target confirmation, encrypted backup, and post-write verification.
+- Wizard **age setup / recovery help** and complete identity/key custody and restore documentation.
+- **Delete recovery / Restore**: read-only reconciliation and explicitly authorized create-only restoration of verified deleted Secrets. No replay after ambiguous mutation.
+- TLS Doctor override of connect IP/host with independently preserved hostname/SNI/trust validation.
+- Isolated operator UAT plan and manual Gherkin scenarios; synthetic regression tests cover restoration, dormant workloads, RBAC visibility and Gateway reference scenarios.
+
+### Changed
+
+- Delete checks standard workload Pod templates, including scale-to-zero/suspended workloads, and cross-namespace Gateway references; missing permission remains HOLD.
+- Toolbox Dependencies uses matching workload/Gateway coverage.
+- Restore eligibility requires verified Delete journal, encrypted backup, unchanged cluster/namespace identity, and an absent Secret. Restores receive a new Kubernetes UID.
+
+### Security and compatibility
+
+- Existing Delete plans without a pinned namespace UID cannot be restored through the guided workflow. Manual incident procedure is required.
+- No bulk/force Delete, no automatic retry/rollback, no overwrite during Restore.
+- Published **source release** validates code and synthetic CI only. Isolated real-cluster UAT, backup drills, endpoint/application verification and operator authorization remain required before production use.
 
 ## [0.1.1] - 2026-10-15
 
@@ -76,6 +100,7 @@ No subsequent user-facing changes have been recorded.
 - Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
 - Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
+[0.2.0]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.0
 [0.1.1]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.1
 [0.1.0]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0
 [0.1.0-rc.1]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.0-rc.1

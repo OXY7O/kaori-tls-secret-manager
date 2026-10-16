@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Quality Gate" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.1"><img alt="Release v0.1.1" src="https://img.shields.io/badge/release-v0.1.1-blue"></a>
+  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.0"><img alt="Release v0.2.0" src="https://img.shields.io/badge/release-v0.2.0-blue"></a>
 </p>
 
 <p align="center">
@@ -41,7 +41,7 @@ Designed for **human-controlled infrastructure operations**: inspect before chan
 | **Renew / Update** | Guided target discovery, selective READY/HOLD/SKIPPED review and renewal; optional single-target same-SAN CRUD Update | Fresh plans, authorized writes, encrypted backups, journaling, scoped recovery |
 | **Create** | Guided Create or plan-create/create commands | Validates supplied PEM/key, checks target absence, never overwrites |
 | **Delete / decommission** | Guided Delete or plan-delete/delete commands | **HOLD** when Ingress/Pod/Gateway/workload-template references, ownership or visibility blocks safety; backup before deletion, API UID/resourceVersion preconditions |
-| **Recovery & evidence** | Run history, HOLD review, HTTPS re-verification and guarded rollback flows | No blind retries after an uncertain mutation; private local artifacts |
+| **Recovery & evidence** | Run history, HOLD review, age recovery help, HTTPS re-verification, guarded create-only Restore and renewal rollback | No blind retries after an uncertain mutation; private local artifacts |
 
 This is not an unattended controller. In particular, a clean Kubernetes reference scan **does not prove** a Secret is unused by external load balancers, proxies or integrations; a human must confirm external dependencies before Delete.
 
@@ -62,7 +62,7 @@ sudo apt install -y git python3 openssl age ca-certificates
 
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
-git checkout v0.1.1  # pin the published release; omit for the latest source
+git checkout v0.2.0  # pin the published release; omit for the latest source
 
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
@@ -135,8 +135,11 @@ All entrypoints use the same repository; no second checkout is required.
 | **plan-create → create** | Plan then explicitly create a new TLS Secret |
 | **plan-update → update** | Plan then rotate one existing TLS Secret with the same SAN set |
 | **plan-delete → delete** | Scan dependencies, plan, then explicitly decommission one Secret |
+| **reconcile-delete → restore-delete** | Read-only Delete reconciliation and authorized create-only Restore from encrypted backup |
 
 The planning commands are read-only with respect to Kubernetes and store private plan/evidence files in **--workspace**, which must be outside the checkout. Mutation commands require a plan, exact Plan ID, target confirmation and either interactive operator-mode authorization or a signed approval record. Update and Delete require an age backup recipient. **Do not substitute a bare kubectl delete command for KAORI's guarded Delete workflow.**
+
+**Guided Delete recovery:** first reconcile the original plan/journal against the selected cluster, then (only after verified completed Delete, safe age backup and exact confirmation) restore without overwriting an existing Secret. See the [age guide](docs/AGE-RECOVERY.md).
 
 **Advanced renewal operations:** `discover`, `reconcile`, `inspect`, `verify-source`, `plan`, `renew`, `verify`, `verify-endpoints`, `rollback`, `rollback-target`, `report`. For argument details, invoke **--help** and see the [operator guide](docs/OPERATOR-GUIDE.md) and [example target CSV files](scripts/kubernetes/tls-secret-manager/examples/).
 
@@ -155,14 +158,14 @@ See the [security policy](SECURITY.md) and [architecture](docs/ARCHITECTURE.md).
 
 ## Release and compatibility
 
-**Current release:** [`v0.1.1`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.1.1), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
+**Current release:** [`v0.2.0`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.0), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
 
 - **Automated quality:** GitHub Actions **Quality Gate** checks syntax, regression tests, command entrypoints and absence of cluster credentials (Ubuntu, Python 3.12).
 - **Runtime requirements:** Linux/WSL, Python 3.10+, Bash, OpenSSL and `age`; add `kubectl` and authorized RBAC for Kubernetes operations. Platform and cluster compatibility depend on your environment.
 - **Not provided:** self-contained binaries, Docker images, Homebrew packages, ACME issuance, continuous reconciliation controller, or unattended destructive operations.
 - **Operational responsibility:** Before a write, verify scope, permissions, workload dependencies, encrypted recovery and the served HTTPS certificate when applicable. Automated CI does not exercise external Kubernetes environments.
 
-Read the [release notes](docs/releases/v0.1.1.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
+Read the [release notes](docs/releases/v0.2.0.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
 
 ## Documentation & community
 
