@@ -122,6 +122,28 @@ class ReleasePreflightTests(unittest.TestCase):
                     gate.github_get("releases/tags/v0.1.2", repository=repository,
                                     token=token)
 
+    def test_workflow_will_not_start_publisher_for_existing_release(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("name: Quality Gate", workflow)
+        self.assertIn("name: Release Preflight", workflow)
+        self.assertIn("name: Publish Release", workflow)
+        publisher = workflow.split("\n  publish_release:", 1)[1]
+        self.assertIn("needs.release_preflight.outputs.publish == 'true'", publisher)
+        self.assertIn("contents: write", publisher)
+        self.assertIn("if: steps.recheck.outputs.publish == 'true'", publisher)
+        preflight = workflow.split("\n  release_preflight:", 1)[1].split(
+            "\n  publish_release:", 1)[0]
+        self.assertIn("contents: read", preflight)
+        self.assertNotIn("contents: write", preflight)
+        self.assertNotIn("git archive", preflight)
+
+    def test_release_preflight_is_never_a_required_pr_check(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}",
+            workflow)
+        self.assertIn("needs: quality_gate", workflow)
+
     def test_active_repository_has_a_complete_immutable_release(self):
         # No network: verifies the checked-out version, changelog and local assets.
         self.assertEqual(gate.release_version(ROOT), "0.1.1")
