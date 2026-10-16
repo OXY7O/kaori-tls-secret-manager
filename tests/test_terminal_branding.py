@@ -35,10 +35,14 @@ class TerminalBrandTests(unittest.TestCase):
         mode = brand.render_header(stream=output, environ=env, width=80)
         self.assertEqual(mode, "iterm")
         result = output.getvalue()
-        self.assertIn("File=inline=1;width=18;height=9;", result)
+        self.assertIn("File=inline=1;width=18;height=11;", result)
         encoded = result.split(":", 1)[1].split("\x07", 1)[0]
         self.assertEqual(base64.b64decode(encoded), brand.ICON_FILE.read_bytes())
-        self.assertIn("KAORI  |  TLS MANAGEMENT", result)
+        self.assertIn("\x1b7", result)
+        self.assertIn("\x1b8", result)
+        self.assertIn("■", result)
+        self.assertIn("▪", result)
+        self.assertIn(" │ ", result)
 
     def test_ansi_fallback_uses_pixel_art_from_new_icon_for_any_color_tty(self):
         for env in (
@@ -54,10 +58,44 @@ class TerminalBrandTests(unittest.TestCase):
                 rendered = output.getvalue()
                 self.assertIn("▀", rendered)
                 self.assertIn("\x1b[", rendered)
-                self.assertIn("KAORI", rendered)
-                self.assertIn("TLS MANAGEMENT", rendered)
+                self.assertIn("■", rendered)
+                self.assertIn("▪", rendered)
+                self.assertIn(" │ ", rendered)
                 self.assertNotIn("\x1b]1337", rendered)
                 self.assertNotIn(".------.", rendered)
+
+    def test_block_font_encodes_both_exact_titles(self):
+        large = brand.block_text_rows("KAORI", brand.TITLE_FONT, "■")
+        small = brand.block_text_rows("TLS MANAGEMENT", brand.SUBTITLE_FONT, "▪")
+        self.assertEqual(len(large), 5)
+        self.assertEqual(len(small), 5)
+        self.assertTrue(any("■" in row for row in large))
+        self.assertTrue(any("▪" in row for row in small))
+        self.assertIsNone(brand.block_brand_rows("KAORI", "UNSUPPORTED?"))
+        self.assertEqual(len(brand.block_brand_rows("KAORI", "TLS MANAGEMENT")), 11)
+
+    def test_80_column_terminal_never_wraps_the_pixel_title(self):
+        import re
+        output = TtyStream()
+        mode = brand.render_header(
+            stream=output, environ={"TERM": "xterm-256color"},
+            width=80)
+        self.assertEqual(mode, "ansi")
+        lines = output.getvalue().splitlines()
+        cleaned = [re.sub(r"\\x1b\\[[0-9;]*m", "", line) for line in lines]
+        self.assertLess(max(len(line) for line in cleaned), 80)
+        self.assertEqual(sum("■" in line for line in cleaned), 5)
+        self.assertEqual(sum("▪" in line for line in cleaned), 5)
+
+    def test_smaller_color_tty_preserves_icon_and_readable_text(self):
+        output = TtyStream()
+        mode = brand.render_header(
+            stream=output, environ={"TERM": "xterm-256color"},
+            width=70)
+        self.assertEqual(mode, "ansi")
+        self.assertIn("KAORI", output.getvalue())
+        self.assertIn("TLS MANAGEMENT", output.getvalue())
+        self.assertNotIn("■", output.getvalue())
 
     def test_ansi_grid_dimensions_and_terminal_escape_reset(self):
         rows = brand.pixel_rows(truecolor=True)
@@ -107,7 +145,7 @@ class TerminalBrandTests(unittest.TestCase):
         output = TtyStream()
         with patch.object(brand, "inline_iterm_icon", return_value=False):
             brand.render_header(stream=output, environ={"TERM": "xterm-256color"}, width=80)
-        self.assertIn("KAORI", output.getvalue())
+        self.assertIn("■", output.getvalue())
 
 
 if __name__ == "__main__":
