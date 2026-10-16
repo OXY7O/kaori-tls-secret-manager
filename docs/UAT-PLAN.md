@@ -1,4 +1,4 @@
-# KAORI TLS Secret Manager — pre-release operator UAT
+# KAORI TLS Secret Manager — isolated Kubernetes operator UAT
 
 **Status:** test specification, **not execution evidence**. Do not mark PASS until a human operator runs each scenario against an explicitly authorized disposable Kubernetes environment and retains sanitized results. GitHub synthetic CI never mutates a real cluster.
 
@@ -41,4 +41,4 @@
 
 For each scenario record: date/time, test operator, isolated kubecontext, test fixture reference, commit SHA, expected result, observed status, sanitized evidence path, verdict (`PASS`, `FAIL`, `HOLD`, `NOT RUN`) and any issue created. Do not change application configurations or strip security checks merely to obtain a PASS.
 
-**Release criterion:** all applicable P0 safety scenarios PASS, and any HOLD/NOT RUN is reviewed explicitly. Synthetic GitHub Actions checks are a prerequisite, **not** UAT completion.
+**Operational acceptance criterion:** all applicable P0 safety scenarios PASS, and any HOLD/NOT RUN is reviewed explicitly before **production use**. A versioned public **source release** may be published after offline quality/security checks, but this is not evidence of cluster UAT acceptance. Synthetic GitHub Actions checks are a prerequisite, **not** UAT completion.

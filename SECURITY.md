@@ -6,9 +6,10 @@ KAORI TLS Certificate Manager operates on sensitive Kubernetes TLS Secret materi
 
 | Source | Security support |
 | --- | --- |
-| **v0.1.1** | Current public source release; best-effort vulnerability handling |
-| **v0.1.0** | Previous source release; upgrade to v0.1.1 |
-| **v0.1.0-rc.1** | Historical release candidate; upgrade to v0.1.1 |
+| **v0.2.0** | Current public source release; best-effort vulnerability handling |
+| **v0.1.1** | Previous source release; upgrade to v0.2.0 |
+| **v0.1.0** | Historical source release; upgrade to v0.2.0 |
+| **v0.1.0-rc.1** | Historical release candidate; upgrade to v0.2.0 |
 
 GitHub Actions validates source behavior with synthetic tests and does not assess infrastructure outside the repository. There is **no guaranteed security response SLA or vendor certification**.
 
@@ -27,10 +28,10 @@ Maintainers will assess reports and coordinate a fix/disclosure when possible; n
 - Use only an authorized kubeconfig context and minimum required namespace-scoped RBAC.
 - Do not store private evidence, Kubernetes Secret data, age recovery identities, signed approvals, kubeconfig or real PEM material in the repository or public CI artifacts.
 - Keep private workspaces outside the source checkout, with restrictive permissions. Backups encrypted with age are not recoverable if the necessary identity is lost; maintain independent secure custody.
-- The normal **single-operator interactive wizard** uses deliberate, local human confirmation. Create and Delete do **not** require separate detached signature files in this mode.
+- The normal **single-operator interactive wizard** uses deliberate, local human confirmation. Create, Update and Delete do **not** require separate detached signature files in this mode.
 - The **non-interactive enterprise workflow** supports independent signed approval and a protected approver public trust anchor; do not bypass its trust boundary.
 - Treat unknown API results, context or resource identity drift, RBAC gaps, failed backups and uncertain dependency scans as **STOP/HOLD**. Reconcile before taking further action; never blindly retry a mutation.
-- Delete requires live API UID/resourceVersion preconditions plus dependency/owner checks. Ingress, Pod and Gateway scans do **not** prove that external consumers are absent; the operator must review them separately and explicitly attest to their absence.
+- Delete requires live API UID/resourceVersion preconditions plus dependency/owner checks. Ingress, Pod, standard workload-template and Gateway scans do **not** prove that external consumers are absent; the operator must review them separately and explicitly attest to their absence.
 - A successful readback of stored TLS Secret material does **not** prove that an endpoint or old load balancer presents that certificate. Confirm SNI, trust and the served fingerprint separately.
 
 ## Current limitations
