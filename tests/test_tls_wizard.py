@@ -408,13 +408,13 @@ class WizardTests(unittest.TestCase):
         from io import StringIO
         w.setup_display(plain=True)
         output = StringIO()
-        with patch.object(w.shutil, "get_terminal_size",
+        with patch.object(w.render_header.__globals__["shutil"], "get_terminal_size",
                           return_value=types.SimpleNamespace(columns=54)), \
              redirect_stdout(output):
             w.brand_banner()
         self.assertIn("  TLS MANAGEMENT", output.getvalue())
         self.assertNotIn("OPS  /  TLS", output.getvalue())
-        self.assertIn("       .------.", output.getvalue())
+        self.assertIn("[KAORI]", output.getvalue())
         self.assertIn("  KAORI", output.getvalue())
         self.assertTrue(output.getvalue().isascii())
         args = types.SimpleNamespace(workspace=None)
