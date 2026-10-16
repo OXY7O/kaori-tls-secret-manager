@@ -196,7 +196,7 @@ class WizardTests(unittest.TestCase):
              redirect_stdout(output):
             w.main_menu(args)
         screen = output.getvalue()
-        self.assertIn("TLS MANAGEMENT", screen)
+        self.assertIn("TLS Secret Management", screen)
         self.assertIn("  1. Inventory", screen)
         self.assertNotIn("DISCOVERY & DIAGNOSTICS", screen)
         self.assertNotIn("[DEFAULT]", screen)
@@ -439,8 +439,8 @@ class WizardTests(unittest.TestCase):
                         clear=False):
             w.brand_banner()
         self.assertIn("\x1b]1337;File=inline=1;", output.getvalue())
-        self.assertIn("■", output.getvalue())
-        self.assertIn("▪", output.getvalue())
+        self.assertIn("KAORI", output.getvalue())
+        self.assertIn("TLS Secret Management", output.getvalue())
 
     def test_brand_logo_never_emits_control_sequences_in_plain_mode(self):
         from contextlib import redirect_stdout
@@ -450,7 +450,7 @@ class WizardTests(unittest.TestCase):
              redirect_stdout(StringIO()) as out:
             w.brand_banner()
         self.assertNotIn("\x1b", out.getvalue())
-        self.assertIn("TLS MANAGEMENT", out.getvalue())
+        self.assertIn("TLS Secret Management", out.getvalue())
         self.assertIn("[KAORI]", out.getvalue())
 
     def test_brand_falls_back_to_colored_pixel_mark_without_iterm(self):
@@ -467,7 +467,7 @@ class WizardTests(unittest.TestCase):
             w.brand_banner()
         self.assertIn("\x1b[", output.getvalue())
         self.assertIn("▀", output.getvalue())
-        self.assertIn("▪", output.getvalue())
+        self.assertIn("TLS Secret Management", output.getvalue())
         self.assertNotIn("\x1b]1337", output.getvalue())
         self.assertNotIn(".------.", output.getvalue())
 

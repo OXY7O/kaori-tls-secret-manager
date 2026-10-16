@@ -6,9 +6,10 @@ KAORI TLS Certificate Manager operates on sensitive Kubernetes TLS Secret materi
 
 | Source | Security support |
 | --- | --- |
-| **v0.2.2** | Current public source release; best-effort vulnerability handling |
-| **v0.2.1** | Previous source release; upgrade to v0.2.2 |
-| **v0.2.0** | Previous source release; upgrade to v0.2.2 |
+| **v0.2.3** | Current public source release; best-effort vulnerability handling |
+| **v0.2.2** | Previous source release; upgrade to v0.2.3 |
+| **v0.2.1** | Previous source release; upgrade to v0.2.3 |
+| **v0.2.0** | Previous source release; upgrade to v0.2.3 |
 | **v0.1.1** | Previous source release; upgrade to v0.2.1 |
 | **v0.1.0** | Historical source release; upgrade to v0.2.0 |
 | **v0.1.0-rc.1** | Historical release candidate; upgrade to v0.2.0 |
