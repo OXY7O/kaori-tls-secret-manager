@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml"><img alt="Quality Gate" src="https://github.com/OXY7O/kaori-tls-secret-manager/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.8"><img alt="Release v0.2.8" src="https://img.shields.io/badge/release-v0.2.8-blue"></a>
+  <a href="https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.9"><img alt="Release v0.2.9" src="https://img.shields.io/badge/release-v0.2.9-blue"></a>
 </p>
 
 <p align="center">
@@ -62,7 +62,7 @@ sudo apt install -y git python3 openssl age ca-certificates
 
 git clone https://github.com/OXY7O/kaori-tls-secret-manager.git
 cd kaori-tls-secret-manager
-git checkout v0.2.8  # pin the published release; omit for the latest source
+git checkout v0.2.9  # pin the published release; omit for the latest source
 
 bash scripts/tls-secret-manager.sh doctor
 bash scripts/tls-secret-manager.sh wizard --plain
@@ -110,7 +110,7 @@ The interactive interface groups **Inventory**, **Expiry Audit**, **TLS Toolbox*
 
 For a new TLS Secret or HTTPS endpoint, use **TLS Toolbox → TLS Doctor**. **Reverify HTTPS** examines evidence from a previously saved renewal run.
 
-**Authorization varies by operation:** Inventory, diagnostics and read-only plans do not require write approval. Guided Create/Update/Delete is optimized for a **single authorized operator**: select context, namespace and exact Secret; review the read-only plan; explicitly type **PROCEED** to continue. Delete also requires an **UNUSED** external-consumer attestation and exact target confirmation; KAORI provisions/reuses a protected age recovery identity and verifies its encrypted backup before the write. One-target guided TLS Secret renewal requires **AUTHORIZED** and the exact Plan ID; multi-target or external-TLS-termination renewal also requires an independent signed approver. Advanced non-interactive workflows support separate signed approval. There is no force-delete shortcut.
+**Authorization varies by operation:** Inventory, diagnostics and read-only plans do not require write approval. Guided Create/Update/Delete is optimized for a **single authorized operator**: select context, namespace and exact Secret; review the read-only plan; explicitly type **PROCEED** to continue. Delete also requires an **UNUSED** external-consumer attestation and exact target confirmation; KAORI provisions/reuses a protected age recovery identity and verifies its encrypted backup before the write. Guided renewal of one or multiple **Secret-bound** READY TLS Secrets supports a single authorized operator. For a batch, review all listed targets, confirm `RENEW N TLS SECRETS`, type **AUTHORIZED** and the exact Plan ID, and use the protected age recovery backup. **External TLS termination still requires a separate signed approver**, as does non-interactive multi-target renewal. Advanced non-interactive workflows support separate signed approval. There is no force-delete shortcut.
 
 Read the [single-operator Delete walkthrough](docs/DELETE-TLS-SECRET-SOP.md) and [age encryption / recovery key guide](docs/AGE-RECOVERY.md) before Update/Delete. The wizard includes guided **Update TLS Secret** and **Age setup / recovery help**.
 
@@ -152,7 +152,7 @@ Inventory ALL now supports safe read-only API retries (90-second request timeout
 - **Managed resource:** Kubernetes Secrets whose `type` is `kubernetes.io/tls` (`tls.crt`, `tls.key`), not CA issuance or standalone X.509 certificate management.
 - **Read-only:** Inventory, Expiry Audit, TLS Doctor and plans need appropriate read RBAC, but no write approval.
 - **Guided Create/Update/Delete:** one authorized operator reviews a plan, enters exact action/target confirmation, and provides protected backup evidence where required; Delete also requires **UNUSED** external-consumer attestation.
-- **Guided renewal:** for one READY Secret, enter **AUTHORIZED** and the exact Plan ID; for multiple Secrets or external TLS termination, provide independent signed approval as well.
+- **Guided renewal:** one Secret requires **AUTHORIZED** and exact Plan ID; multiple **Secret-bound** READY Secrets additionally require a typed `RENEW N TLS SECRETS` confirmation and are authorized by one operator in a TTY. External TLS termination and unattended multi-target renewal still require an independent signed approver.
 - **Environment:** only authorized Kubernetes contexts/namespaces. DEV/UAT is for validation, not a hard-coded environment restriction. Production needs separate operational acceptance and change authorization.
 
 Detailed definitions: [Scope and authorization](docs/SCOPE-AND-AUTHORIZATION.md).
@@ -170,14 +170,14 @@ See the [security policy](SECURITY.md) and [architecture](docs/ARCHITECTURE.md).
 
 ## Release and compatibility
 
-**Current release:** [`v0.2.8`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.8), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
+**Current release:** [`v0.2.9`](https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.9), distributed under [Semantic Versioning](https://semver.org/). Clone the tagged source for reproducible operation or use `main` for the latest changes. The `0.x` series allows API and interface changes between releases; a second repository and pip installation are not required.
 
 - **Automated quality:** GitHub Actions **Quality Gate** checks syntax, regression tests, command entrypoints and absence of cluster credentials (Ubuntu, Python 3.12).
 - **Runtime requirements:** Linux/WSL, Python 3.10+, Bash, OpenSSL and `age`; add `kubectl` and authorized RBAC for Kubernetes operations. Platform and cluster compatibility depend on your environment.
 - **Not provided:** self-contained binaries, Docker images, Homebrew packages, ACME issuance, continuous reconciliation controller, or unattended destructive operations.
 - **Operational responsibility:** Before a write, verify scope, permissions, workload dependencies, encrypted recovery and the served HTTPS certificate when applicable. Automated CI does not exercise external Kubernetes environments.
 
-Read the [release notes](docs/releases/v0.2.8.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
+Read the [release notes](docs/releases/v0.2.9.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md) and [release quality policy](docs/RELEASE-POLICY.md). Make changes only in an authorized Kubernetes context.
 
 ## Documentation & community
 

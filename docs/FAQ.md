@@ -18,7 +18,7 @@ No. External consumers such as load balancers, reverse proxies, scripts, integra
 
 ### Do I need an approver JSON/signature for the interactive wizard?
 
-No. The normal guided Create/Update/Delete paths run under one authorized operator with exact typed target/action confirmations. One-target guided renewal requires `AUTHORIZED` plus exact Plan ID; multi-target or external-TLS-termination renewal additionally requires independent signed approval. The enterprise non-interactive flow uses documented separate signed approval.
+No. The normal guided Create/Update/Delete paths run under one authorized operator with exact typed target/action confirmations. One-target guided renewal requires `AUTHORIZED` and exact Plan ID. Multi-target **Secret-bound** renewal can be performed by one operator in the interactive wizard by typing `RENEW N TLS SECRETS` plus `AUTHORIZED` and Plan ID; no signed JSON is needed. External TLS termination still requires separate signed approval, as does a non-interactive multi-target run.
 
 ### Why does Delete ask about an age recovery identity?
 
@@ -34,7 +34,7 @@ No. KAORI saves a local **.prom** textfile with aggregate audit counts. A separa
 
 ### Is KAORI restricted to DEV/UAT, or can it be used in production?
 
-KAORI `v0.2.8` is publicly released source code, not a managed service or certified deployment. DEV/UAT is recommended for validation, not a hard-coded restriction. Production use requires acceptance testing, appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
+KAORI `v0.2.9` is publicly released source code, not a managed service or certified deployment. DEV/UAT is recommended for validation, not a hard-coded restriction. Production use requires acceptance testing, appropriate Kubernetes permissions and change authorization. Before write operations, verify dependency discovery, backup restoration, endpoint ownership and your environment’s security policy; see the [operator guide](OPERATOR-GUIDE.md) and [release policy](RELEASE-POLICY.md).
 
 ### Where is the full CLI argument list?
 
@@ -42,4 +42,4 @@ Run **bash scripts/tls-secret-manager.sh --help**, **... crud --help**, or **...
 
 ### Why does Inventory ALL time out after all RBAC checks return yes?
 
-Permissions and Kubernetes API latency are different. A successful `auth can-i` does not guarantee a LIST/GET response completes. In v0.2.8, Inventory reads use a 90-second timeout, 100-object pagination and two bounded retries for transient errors. An incomplete scan stops without a final inventory report, with a safe error category rather than raw Secret data. See [Inventory troubleshooting](INVENTORY-TROUBLESHOOTING.md).
+Permissions and Kubernetes API latency are different. A successful `auth can-i` does not guarantee a LIST/GET response completes. In v0.2.9, Inventory reads use a 90-second timeout, 100-object pagination and two bounded retries for transient errors. An incomplete scan stops without a final inventory report, with a safe error category rather than raw Secret data. See [Inventory troubleshooting](INVENTORY-TROUBLESHOOTING.md).

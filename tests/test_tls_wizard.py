@@ -561,7 +561,7 @@ class WizardTests(unittest.TestCase):
         self.assertIn("STEP 7/9  Review and authorize changes", text)
         self.assertIn("Note: No Kubernetes Secrets written yet.", text)
         self.assertIn("AUTHORI" + "ZED", text)
-        self.assertIn("independent signature", text)
+        self.assertIn("External TLS termination requires an independent signed approver", text)
         self.assertTrue(text.isascii())
 
     def test_choose_namespaces_numeric_requires_confirmation(self):

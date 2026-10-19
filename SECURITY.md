@@ -6,18 +6,19 @@ KAORI TLS Secret Manager operates on sensitive Kubernetes TLS Secrets (`type: ku
 
 | Source | Security support |
 | --- | --- |
-| **v0.2.8** | Current public source release; best-effort vulnerability handling |
-| **v0.2.7** | Previous source release; upgrade to v0.2.8 |
-| **v0.2.6** | Previous source release; upgrade to v0.2.8 |
-| **v0.2.5** | Previous source release; upgrade to v0.2.8 |
-| **v0.2.4** | Previous source release; upgrade to v0.2.8 |
-| **v0.2.3** | Previous source release; upgrade to v0.2.8 |
-| **v0.2.2** | Previous source release; upgrade to v0.2.8 |
-| **v0.2.1** | Previous source release; upgrade to v0.2.8 |
-| **v0.2.0** | Previous source release; upgrade to v0.2.8 |
-| **v0.1.1** | Previous source release; upgrade to v0.2.8 |
-| **v0.1.0** | Historical source release; upgrade to v0.2.8 |
-| **v0.1.0-rc.1** | Historical release candidate; upgrade to v0.2.8 |
+| **v0.2.9** | Current public source release; best-effort vulnerability handling |
+| **v0.2.8** | Previous source release; upgrade to v0.2.9 |
+| **v0.2.7** | Previous source release; upgrade to v0.2.9 |
+| **v0.2.6** | Previous source release; upgrade to v0.2.9 |
+| **v0.2.5** | Previous source release; upgrade to v0.2.9 |
+| **v0.2.4** | Previous source release; upgrade to v0.2.9 |
+| **v0.2.3** | Previous source release; upgrade to v0.2.9 |
+| **v0.2.2** | Previous source release; upgrade to v0.2.9 |
+| **v0.2.1** | Previous source release; upgrade to v0.2.9 |
+| **v0.2.0** | Previous source release; upgrade to v0.2.9 |
+| **v0.1.1** | Previous source release; upgrade to v0.2.9 |
+| **v0.1.0** | Historical source release; upgrade to v0.2.9 |
+| **v0.1.0-rc.1** | Historical release candidate; upgrade to v0.2.9 |
 
 GitHub Actions validates source behavior with synthetic tests and does not assess infrastructure outside the repository. There is **no guaranteed security response SLA or vendor certification**.
 
@@ -38,7 +39,7 @@ Maintainers will assess reports and coordinate a fix/disclosure when possible; n
 - Keep private workspaces outside the source checkout, with restrictive permissions. Backups encrypted with age are not recoverable if the necessary identity is lost; maintain independent secure custody.
 - Read-only inspection, diagnostics and plans do **not** require write approval; Kubernetes read RBAC still applies.
 - The normal **single-operator interactive wizard** uses deliberate, local human confirmation. Create, Update and Delete do **not** require separate detached signature files in this mode.
-- One-target guided renewal uses `AUTHORIZED` plus exact Plan ID; multi-target/external-TLS-termination renewal additionally requires independent signed approval.
+- One-target guided renewal requires `AUTHORIZED` and exact Plan ID. Interactive **Secret-bound** multi-target renewal permits a single authorized TTY operator with an exact batch-count acknowledgment, full plan review, age backup and wave verification. External TLS termination and non-interactive multi-target renewal still require independent signed approval.
 - The **non-interactive enterprise workflow** supports independent signed approval and a protected approver public trust anchor; do not bypass its trust boundary.
 - Treat unknown API results, context or resource identity drift, RBAC gaps, failed backups and uncertain dependency scans as **STOP/HOLD**. Reconcile before taking further action; never blindly retry a mutation.
 - Delete requires live API UID/resourceVersion preconditions plus dependency/owner checks. Ingress, Pod, standard workload-template and Gateway scans do **not** prove that external consumers are absent; the operator must review them separately and explicitly attest to their absence.

@@ -843,6 +843,40 @@ def verify_approval_attestation(plan, args, *, required=False, action='RENEW', t
          str(signature), str(record)])
 
 
+def authorize_renewal(plan, args, ready, endpoints):
+    """One authorized TTY operator may run multi-target *Secret-bound* renewals.
+
+    External TLS termination always retains independent signed authorization.
+    A non-interactive multi-target execution cannot request operator-mode.
+    The existing immutable plan, endpoint map, cluster UID, CAS, backup, wave
+    verification, and journal protections remain enforced by cmd_renew.
+    """
+    external = any(ep['verification_mode'] == 'EXTERNAL_TERMINATION'
+                   for ep in endpoints)
+    multi = len(ready) > 1
+    operator_mode = bool(getattr(args, 'operator_mode', False))
+    check(operator_mode or not getattr(args, 'operator_ack', None),
+          'Operator batch acknowledgement requires --operator-mode')
+    if operator_mode:
+        check(multi, 'Operator batch mode is only for multi-target renewal')
+        check(not external,
+              'External TLS termination requires independently signed approval')
+        check(not (getattr(args, 'approval_record', None) or
+                   getattr(args, 'approval_signature', None)),
+              'Operator batch mode and independent signed approval cannot be combined')
+        check(sys.stdin.isatty(),
+              'Single-operator batch renewal requires an interactive TTY')
+        expected = f'RENEW {len(ready)} TLS SECRETS'
+        check(getattr(args, 'operator_ack', None) == expected,
+              f'Operator must explicitly confirm exact batch: {expected}')
+        check(getattr(args, 'approve', None) == plan['plan_id'],
+              'Operator batch approval must match the exact PLAN ID')
+        return 'SINGLE_OPERATOR_BATCH'
+    verify_approval_attestation(plan, args, required=multi or external)
+    return ('SIGNED' if multi or external or getattr(args, 'approval_record', None)
+            else 'SINGLE_TARGET')
+
+
 def cmd_renew(args):
     cert, key, info = verify_source(args.cert, args.key, args.ca_bundle)
     plan = read_json(args.plan)
@@ -859,9 +893,7 @@ def cmd_renew(args):
           'Multi-Secret renewal requires --endpoints: verify each target before the next write')
     staged = read_staged_targets(staged_path, plan) if staged_path else {}
     endpoints = read_endpoint_targets(endpoint_path, plan, staged) if endpoint_path else []
-    requires_sig = len(ready) > 1 or any(
-        ep['verification_mode'] == 'EXTERNAL_TERMINATION' for ep in endpoints)
-    verify_approval_attestation(plan, args, required=requires_sig)
+    authorization_method = authorize_renewal(plan, args, ready, endpoints)
     deadline_seconds = int(getattr(args, 'wave_timeout_seconds', 90))
     check(10 <= deadline_seconds <= 900, 'Wave verification timeout must be 10..900 seconds')
     # Preflight read access and encrypted full-object backup across all targets.
@@ -873,7 +905,8 @@ def cmd_renew(args):
               and old_info(obj)['fingerprint'] == e['old_fingerprint'],
               f'Secret changed after plan preflight: {e["namespace"]}/{e["secret_name"]}')
     backup_age(target / 'backup' / 'secrets.age', snapshots, args.backup_recipient)
-    journal = {'plan_id': plan['plan_id'], 'status': 'RUNNING', 'items': []}
+    journal = {'plan_id': plan['plan_id'], 'status': 'RUNNING',
+               'authorization_method': authorization_method, 'items': []}
     update_journal(target / 'execution-journal.json', journal)
     for e, old in zip(ready, snapshots):
         item = {'namespace': e['namespace'], 'secret_name': e['secret_name'], 'status': 'UNKNOWN'}
@@ -1450,6 +1483,10 @@ def main():
         if cmd == 'renew':
             sp.add_argument('--backup-recipient', required=True)
             sp.add_argument('--ack-identity-replacement', action='store_true')
+            sp.add_argument('--operator-mode', action='store_true',
+                            help='Interactive TTY single-operator batch for Secret-bound endpoints only')
+            sp.add_argument('--operator-ack',
+                            help='Exact human-reviewed batch phrase: RENEW N TLS SECRETS')
             sp.add_argument('--endpoints', help='Required for multi-Secret writes: preapproved HTTPS mapping')
             sp.add_argument('--staged-targets', help='Explicit preprovisioned Secret approvals')
             sp.add_argument('--wave-timeout-seconds', type=int, default=90,
