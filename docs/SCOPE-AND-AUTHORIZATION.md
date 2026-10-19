@@ -20,11 +20,13 @@ Descriptions like **TLS Certificate Manager**, **Kubernetes TLS certificate mana
 | `crud plan-create`, `plan-update`, `plan-delete`, renewal `plan` | No TLS Secret write | Read RBAC and private plan evidence; no mutation approval |
 | Guided **Create/Update/Delete TLS Secret** | Yes | One authorized operator reviews plan, confirms **PROCEED** and the exact target; Delete also attests **UNUSED** external consumers and verifies an age backup before deleting. No independent signature file for guided single-operator CRUD |
 | Guided renewal of **one READY TLS Secret** | Yes | Operator types **AUTHORIZED** and the exact Plan ID; backed up and verified before/after the conditional update |
-| Guided renewal of **multiple READY Secrets** or with **external TLS termination** | Yes | The operator's confirmations **and** an independent approver's signed approval |
+| Guided renewal of **multiple Secret-bound READY TLS Secrets** | Yes | One TTY operator confirms listed targets with `RENEW N TLS SECRETS`, then `AUTHORIZED` and exact Plan ID; no separate signature files |
+| Guided renewal with **external TLS termination** | Yes | Operator confirmation **and** independent signed approver, even for one target |
+| Non-interactive **multi-target renewal** | Yes | Independently signed approval; no single-operator unattended shortcut |
 | Advanced non-interactive CRUD and enterprise integrations | Yes | Documented independently signed approval record/signature/trust key; see [Operator guide](OPERATOR-GUIDE.md) |
 | Guided restore after a verified Delete | Yes | Read-only reconciliation, pinned original context/namespace, verified complete journal and age backup, explicit exact **RESTORE** target; never overwrite or auto-retry |
 
-**Authorization** always means permission to operate in the specified cluster, namespace and change scope. Typed confirmation is a safeguard and does **not** grant Kubernetes RBAC or waive the organization's change-control requirements. Multi-target signed approval is an additional safeguard, not a replacement for those permissions.
+**Authorization** always means permission to operate in the specified cluster, namespace and change scope. Typed confirmation is a safeguard and does **not** grant Kubernetes RBAC or waive the organization's change-control requirements. Where applicable, independently signed approval is an additional safeguard, not a replacement for those permissions. Single-operator multi-target renewal is restricted to TTY sessions and Secret-bound endpoints, with exact target review, age backup and per-target verification.
 
 ## Environment policy and claims
 

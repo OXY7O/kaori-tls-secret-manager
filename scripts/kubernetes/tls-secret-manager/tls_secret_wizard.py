@@ -204,7 +204,7 @@ def renewal_help():
     print("  7    Inspect READY/HOLD/SKIPPED and obtain authorization")
     print("  8-9  Encrypted backup, conditional update, verification/report")
     print("  Required: AUTHORIZED and the exact PLAN ID before any write.")
-    print("  Multi-target/external TLS changes require an independent signature.")
+    print("  External TLS termination requires an independent signed approver.")
     print("  No automatic retry or rollback; reconcile partial/unknown states.")
     print("  Use menu 1 for read-only inventory before menu 5 renewal.")
 
@@ -256,7 +256,7 @@ def show_operator_help():
     print("\n  SAFETY / SHORTCUTS")
     print("    Menu 1 is the default and does not run renewal or rollback.")
     print("    Renewal needs a fresh plan, explicit operator confirmation, encrypted backup,")
-    print("    and explicit write authorization. Multi-target/external TLS changes")
+    print("    and explicit write authorization. External TLS termination")
     print("    require a separate approver\u0027s signed authorization; no automatic retry.")
     print("    Inventory hostnames are configured Ingress names, NOT live TLS proof.")
     print("    Reverify does not update Kubernetes Secrets but records local evidence.")
@@ -1237,6 +1237,27 @@ def show_run_status(plan_file):
     hint("This menu reads local files only; Kubernetes is not modified.")
 
 
+def confirm_single_operator_batch(plan, ready_count):
+    """Show exact READY namespace/Secret identities and require count confirmation."""
+    targets = [
+        f"{entry['namespace']}/{entry['secret_name']}"
+        for entry in plan['entries'] if entry['status'] == 'READY'
+    ]
+    check(ready_count > 1 and len(targets) == ready_count,
+          "Batch READY count differs from reviewed plan; no write performed")
+    check(len(set(targets)) == len(targets),
+          "Duplicate READY TLS Secret; no write performed")
+    print("  READY TLS Secrets that will be updated:")
+    for label in targets:
+        print("    " + label)
+    hint("Single operator: exact batch scope, Plan ID, age backup, and sequential")
+    hint("HTTPS verification before writing to the next TLS Secret.")
+    phrase = f"RENEW {ready_count} TLS SECRETS"
+    check(ask(f"Type {phrase} to confirm ALL listed READY targets") == phrase,
+          "Batch target confirmation mismatch; no write performed")
+    return ["--operator-mode", "--operator-ack", phrase]
+
+
 def wizard(args):
     os.umask(0o077)
     check(sys.stdin.isatty(), "Interactive TTY required; no piped unattended renewal")
@@ -1256,7 +1277,8 @@ def wizard(args):
     warning("Use only a Kubernetes context and namespaces you are authorized to change.")
     hint("Read-only discovery and planning do not require mutation approval.")
     hint("Single-target renewal: type AUTHORIZED and the exact Plan ID before a write.")
-    hint("Multi-target/external-TLS renewal: independent signed approval is also required.")
+    hint("Multiple Secret-bound TLS Secrets: guided single-operator batch confirmation.")
+    hint("External TLS termination: independent signed approval remains required.")
     hint("Validate in DEV/UAT before production use; CI does not replace cluster UAT.")
     print("  Already-current Secrets: SKIPPED  |  Identity mismatches: HOLD")
     file_hint("Private evidence directory", workspace)
@@ -1359,13 +1381,16 @@ def wizard(args):
     step(7, 9, "Review and authorize changes", "No Kubernetes Secrets have been written up to this point.")
     with endpoint_file.open(newline="", encoding="utf-8") as stream:
         endpoints_for_approval = list(csv.DictReader(stream))
-    requires_signature = counts['READY'] > 1 or any(
+    # Multiple Secret-bound TLS Secrets are supported by a single authorized
+    # interactive operator. External termination remains independently signed.
+    requires_signature = any(
         row.get("verification_mode") == "EXTERNAL_TERMINATION"
         for row in endpoints_for_approval)
+    single_operator_batch = counts["READY"] > 1 and not requires_signature
     signature_args = []
     if requires_signature:
         import hashlib
-        warning("SIGNED APPROVER ATTESTATION REQUIRED: multi-Secret or external TLS write.")
+        warning("SIGNED APPROVER ATTESTATION REQUIRED: external TLS termination.")
         hint("Approval must be signed by a separate authorized approver using a trusted key.")
         request = {
             "schema_version": 1, "action": "RENEW", "target": "",
@@ -1402,6 +1427,8 @@ def wizard(args):
     print(f"HELD, unchanged: {counts['HOLD']}")
     print(f"SKIPPED          : {counts['SKIPPED']}")
     print(f"Plan ID          : {plan['plan_id']}")
+    if single_operator_batch:
+        signature_args = confirm_single_operator_batch(plan, counts["READY"])
     created = datetime.fromisoformat(plan["created_utc"])
     minutes = round((timedelta(minutes=60) - (datetime.now(timezone.utc) - created)).total_seconds()/60, 1)
     print(f"Remaining plan validity   : ~{minutes} minutes")

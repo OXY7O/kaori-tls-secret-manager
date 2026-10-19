@@ -4,7 +4,21 @@ All notable changes to **KAORI TLS Management** are recorded here, following [Ke
 
 ## [Unreleased]
 
-No subsequent changes beyond v0.2.8 have been recorded.
+No subsequent changes beyond v0.2.9 have been recorded.
+
+## [0.2.9] - 2026-10-19
+
+**Enable guided single-operator multi-Secret renewal for Kubernetes Secret-bound TLS endpoints.**
+
+### Changed
+- The interactive renewal wizard displays every READY `namespace/secret` and accepts one operator's `RENEW N TLS SECRETS`, `AUTHORIZED`, and exact Plan ID. No approval JSON, detached signature or separate approver public key is required for this Secret-bound batch path.
+- Backend requires an interactive TTY and validates the exact batch count and plan identity. Operator mode cannot be combined with signed evidence or used for a single target.
+- External TLS termination continues to require independent signed approval, even in a wizard. Non-interactive multi-target renewal still requires separately signed authorization.
+- Renewal journals now record the authorization method for audit evidence. README, operator guide, FAQ, command reference, security policy and glossary updated; synthetic negative tests added.
+
+### Safety unchanged
+- Planned READY/HOLD/SKIPPED scope, target identities, cluster UID/resourceVersion protection, age-encrypted full backup, per-target HTTPS verification before proceeding to the next Secret, STOP/HOLD and recovery boundaries.
+- No unattended or automatic write retry. CI validates offline code paths only; perform real-cluster UAT separately.
 
 ## [0.2.8] - 2026-10-16
 
@@ -225,6 +239,7 @@ No subsequent changes beyond v0.2.8 have been recorded.
 - Source archives target Linux/WSL workflows. Binary installers, universal compatibility certification and commercial support SLAs are not provided.
 - Deployment authorization and workload-specific verification are the responsibility of the operator. See the [release candidate notes](docs/releases/v0.1.0-rc.1.md) and [release quality policy](docs/RELEASE-POLICY.md).
 
+[0.2.9]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.9
 [0.2.8]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.8
 [0.2.7]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.7
 [0.2.6]: https://github.com/OXY7O/kaori-tls-secret-manager/releases/tag/v0.2.6
