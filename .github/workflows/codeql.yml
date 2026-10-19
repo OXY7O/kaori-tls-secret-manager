@@ -52,7 +52,7 @@ jobs:
             --input codeql-sarif \
             --output codeql-sarif/triage-summary.json
       - name: Archive CodeQL SARIF and triage evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codeql-sarif-${{ matrix.language }}
           path: codeql-sarif/
